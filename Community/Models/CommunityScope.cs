@@ -1,6 +1,7 @@
 namespace Community.Models;
 
-public class CommunityScope
+public enum CommunityScope
 {
-    
+    Global,
+    Center
 }

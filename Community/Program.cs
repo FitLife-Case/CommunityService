@@ -1,41 +1,77 @@
-var builder = WebApplication.CreateBuilder(args);
+using Asp.Versioning;
+using Community.Repository;
+using Community.Service;
+using MongoDB.Driver;
+using NLog;
+using NLog.Web;
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+var logger = LogManager.Setup()
+    .LoadConfigurationFromFile("NLog.config")
+    .GetCurrentClassLogger();
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+try
 {
-    app.MapOpenApi();
-}
+    var builder = WebApplication.CreateBuilder(args);
 
-app.UseHttpsRedirection();
+    builder.Logging.ClearProviders();
+    builder.Host.UseNLog();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    builder.Services.AddControllers();
 
-app.MapGet("/weatherforecast", () =>
+    builder.Services.AddEndpointsApiExplorer();
+
+    builder.Services.AddSwaggerGen();
+
+    builder.Services.AddMemoryCache();
+
+    builder.Services.AddApiVersioning(options =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
+        options.DefaultApiVersion = new ApiVersion(1, 0);
 
-app.Run();
+        options.AssumeDefaultVersionWhenUnspecified = true;
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+        options.ReportApiVersions = true;
+    });
+
+    builder.Services.AddSingleton<IMongoClient>(_ =>
+        new MongoClient(
+            builder.Configuration["Mongo:ConnectionString"]));
+
+    builder.Services.AddScoped<IMongoDatabase>(provider =>
+    {
+        var client = provider.GetRequiredService<IMongoClient>();
+
+        return client.GetDatabase(
+            builder.Configuration["Mongo:DatabaseName"]);
+    });
+
+    builder.Services.AddScoped<ICommunityRepository, CommunityRepository>();
+
+    builder.Services.AddScoped<ICommunityService, CommunityService>();
+
+    var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    app.Run();
+}
+catch (Exception ex)
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    logger.Error(ex, "Application stopped because of exception");
+    throw;
+}
+finally
+{
+    LogManager.Shutdown();
 }

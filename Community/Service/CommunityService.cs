@@ -1,6 +1,148 @@
+using Community.Models;
+using Community.Repository;
+using Microsoft.Extensions.Caching.Memory;
+
 namespace Community.Service;
 
-public class CommunityService
+public class CommunityService : ICommunityService
 {
-    
+    private const string GlobalPostsCacheKey = "community-global-posts";
+    private const string CenterPostsCacheKeyPrefix = "community-center-posts-";
+
+    private readonly ICommunityRepository _repository;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<CommunityService> _logger;
+
+    public CommunityService(
+        ICommunityRepository repository,
+        IMemoryCache cache,
+        ILogger<CommunityService> logger)
+    {
+        _repository = repository;
+        _cache = cache;
+        _logger = logger;
+    }
+
+    public async Task<List<Post>> GetGlobalPostsAsync()
+    {
+        if (_cache.TryGetValue(GlobalPostsCacheKey, out List<Post>? cachedPosts))
+        {
+            _logger.LogInformation("Global posts returned from cache");
+            return cachedPosts!;
+        }
+
+        var posts = await _repository.GetGlobalPostsAsync();
+
+        _cache.Set(GlobalPostsCacheKey, posts, TimeSpan.FromMinutes(5));
+
+        _logger.LogInformation("Global posts returned from MongoDB and cached");
+
+        return posts;
+    }
+
+    public async Task<List<Post>> GetCenterPostsAsync(string centerId)
+    {
+        var cacheKey = GetCenterPostsCacheKey(centerId);
+
+        if (_cache.TryGetValue(cacheKey, out List<Post>? cachedPosts))
+        {
+            _logger.LogInformation("Center posts for {CenterId} returned from cache", centerId);
+            return cachedPosts!;
+        }
+
+        var posts = await _repository.GetCenterPostsAsync(centerId);
+
+        _cache.Set(cacheKey, posts, TimeSpan.FromMinutes(5));
+
+        _logger.LogInformation("Center posts for {CenterId} returned from MongoDB and cached", centerId);
+
+        return posts;
+    }
+
+    public async Task CreateGlobalPostAsync(string authorUserId, CreatePostRequest request)
+    {
+        ValidateCreatePostRequest(request);
+
+        var post = new Post
+        {
+            AuthorUserId = authorUserId,
+            Scope = CommunityScope.Global,
+            Title = request.Title.Trim(),
+            Content = request.Content.Trim()
+        };
+
+        await _repository.CreatePostAsync(post);
+
+        _cache.Remove(GlobalPostsCacheKey);
+
+        _logger.LogInformation("Global post created by user {AuthorUserId}", authorUserId);
+    }
+
+    public async Task CreateCenterPostAsync(string authorUserId, string centerId, CreatePostRequest request)
+    {
+        ValidateCreatePostRequest(request);
+
+        if (string.IsNullOrWhiteSpace(centerId))
+        {
+            throw new ArgumentException("CenterId is required");
+        }
+
+        var post = new Post
+        {
+            AuthorUserId = authorUserId,
+            CenterId = centerId,
+            Scope = CommunityScope.Center,
+            Title = request.Title.Trim(),
+            Content = request.Content.Trim()
+        };
+
+        await _repository.CreatePostAsync(post);
+
+        _cache.Remove(GetCenterPostsCacheKey(centerId));
+
+        _logger.LogInformation("Center post created by user {AuthorUserId} for center {CenterId}", authorUserId, centerId);
+    }
+
+    public async Task AddCommentAsync(string postId, string authorUserId, CreateCommentRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(postId))
+        {
+            throw new ArgumentException("PostId is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            throw new ArgumentException("Comment content is required");
+        }
+
+        var comment = new Comment
+        {
+            AuthorUserId = authorUserId,
+            Content = request.Content.Trim()
+        };
+
+        await _repository.AddCommentAsync(postId, comment);
+
+        _cache.Remove(GlobalPostsCacheKey);
+
+        _logger.LogInformation("Comment added to post {PostId} by user {AuthorUserId}", postId, authorUserId);
+    }
+
+    private static string GetCenterPostsCacheKey(string centerId)
+    {
+        return $"{CenterPostsCacheKeyPrefix}{centerId}";
+    }
+
+    private static void ValidateCreatePostRequest(CreatePostRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            throw new ArgumentException("Title is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            throw new ArgumentException("Content is required");
+        }
+    }
 }
