@@ -14,6 +14,6 @@ public class PostTests
 
         Assert.IsNotNull(post.Comments);
 
-        Assert.AreEqual(0, post.Comments.Count);
+        Assert.IsEmpty(post.Comments);
     }
 }
