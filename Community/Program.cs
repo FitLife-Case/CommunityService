@@ -1,41 +1,105 @@
-var builder = WebApplication.CreateBuilder(args);
+using System.Text;
+using Asp.Versioning;
+using Community.Repository;
+using Community.Service;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
+using NLog;
+using NLog.Web;
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+var logger = LogManager.Setup()
+    .LoadConfigurationFromFile("NLog.config")
+    .GetCurrentClassLogger();
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+try
 {
-    app.MapOpenApi();
-}
+    var builder = WebApplication.CreateBuilder(args);
 
-app.UseHttpsRedirection();
+    // Logging
+    builder.Logging.ClearProviders();
+    builder.Host.UseNLog();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    // Controllers + Swagger
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
 
-app.MapGet("/weatherforecast", () =>
+    // Cache
+    builder.Services.AddMemoryCache();
+
+    // API Versioning
+    builder.Services.AddApiVersioning(options =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.ReportApiVersions = true;
+    });
 
-app.Run();
+    // JWT Authentication
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(
+                        builder.Configuration["Jwt:Secret"]!))
+            };
+        });
+
+    // Authorization
+    builder.Services.AddAuthorization();
+
+    // MongoDB
+    builder.Services.AddSingleton<IMongoClient>(_ =>
+        new MongoClient(
+            builder.Configuration["Mongo:ConnectionString"]));
+
+    builder.Services.AddScoped<IMongoDatabase>(provider =>
+    {
+        var client = provider.GetRequiredService<IMongoClient>();
+
+        return client.GetDatabase(
+            builder.Configuration["Mongo:DatabaseName"]);
+    });
+
+    // Dependency Injection
+    builder.Services.AddScoped<ICommunityRepository, CommunityRepository>();
+    builder.Services.AddScoped<ICommunityService, CommunityService>();
+
+    var app = builder.Build();
+
+    // Swagger slået til i både Development og Docker/Production
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+    app.UseHttpsRedirection();
+
+    // Auth middleware
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    // Controllers
+    app.MapControllers();
+
+    app.Run();
+}
+catch (Exception ex)
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    logger.Error(ex, "Application stopped because of exception");
+    throw;
+}
+finally
+{
+    LogManager.Shutdown();
 }
