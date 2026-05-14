@@ -8,6 +8,7 @@ namespace Community.Controllers;
 
 [ApiController]
 [Route("api/community")]
+[Authorize]
 public class CommunityController : ControllerBase
 {
     private readonly ICommunityService _communityService;
@@ -37,7 +38,6 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
-    [Authorize]
     [HttpPost("global/posts")]
     public async Task<ActionResult> CreateGlobalPost(CreatePostRequest request)
     {
@@ -50,7 +50,6 @@ public class CommunityController : ControllerBase
         return Created();
     }
 
-    [Authorize]
     [HttpPost("centers/{centerId}/posts")]
     public async Task<ActionResult> CreateCenterPost(
         string centerId,
@@ -71,7 +70,6 @@ public class CommunityController : ControllerBase
         return Created();
     }
 
-    [Authorize]
     [HttpPost("posts/{postId}/comments")]
     public async Task<ActionResult> AddComment(
         string postId,
