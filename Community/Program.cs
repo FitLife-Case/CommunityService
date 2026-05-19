@@ -20,8 +20,10 @@ try
     builder.Logging.ClearProviders();
     builder.Host.UseNLog();
 
-    // Controllers + Swagger
+    // Controllers + Razor Pages + Swagger
     builder.Services.AddControllers();
+    builder.Services.AddRazorPages();
+    builder.Services.AddHttpClient();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
@@ -89,8 +91,9 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // Controllers
+    // Routes
     app.MapControllers();
+    app.MapRazorPages();
 
     app.Run();
 }

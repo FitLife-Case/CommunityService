@@ -1,19 +1,412 @@
-@page
-@model Community.Pages.Community
+﻿@page "/Community"
+@model global::Community.Pages.CommunityfrontModel
 
 @{
-    Layout = null;
+    ViewData["Title"] = "Community Feed";
 }
 
 <!DOCTYPE html>
-
-<html>
+<html lang="da">
 <head>
-    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Community — FitLife</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #111111;
+            --surface2: #161616;
+            --border: #1e1e1e;
+            --accent: #c8f135;
+            --text: #f0f0f0;
+            --text-muted: #777;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 2rem 3rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: var(--accent);
+            letter-spacing: 0.05em;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+            .back-link:hover {
+                color: var(--accent);
+            }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 3rem;
+        }
+
+        .hero {
+            margin-bottom: 2rem;
+        }
+
+        .hero-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem;
+            letter-spacing: 0.05em;
+        }
+
+            .hero-title span {
+                color: var(--accent);
+            }
+
+        .feed-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .feed-tab {
+            color: var(--text);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            padding: 0.8rem 1.2rem;
+            text-decoration: none;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 0.06em;
+        }
+
+            .feed-tab.active {
+                background: var(--accent);
+                color: #0a0a0a;
+            }
+
+        .filter-card,
+        .create-post-card,
+        .post-card,
+        .empty-posts {
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+
+        .filter-card,
+        .create-post-card {
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+            .filter-card h2,
+            .create-post-card h2,
+            .post-title {
+                font-family: 'Bebas Neue', sans-serif;
+                font-size: 2rem;
+                margin-bottom: 1rem;
+            }
+
+        .form-input,
+        .form-textarea,
+        .form-select,
+        .comment-input {
+            width: 100%;
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.9rem 1rem;
+            margin-bottom: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .comment-input {
+            min-height: 70px;
+            resize: vertical;
+        }
+
+            .form-input:focus,
+            .form-textarea:focus,
+            .form-select:focus,
+            .comment-input:focus {
+                outline: none;
+                border-color: var(--accent);
+            }
+
+        .btn-submit,
+        .btn-comment,
+        .btn-filter {
+            background: var(--accent);
+            color: #0a0a0a;
+            border: none;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+        }
+
+        .btn-submit,
+        .btn-filter {
+            padding: 0.9rem 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        .btn-comment {
+            padding: 0.6rem 1rem;
+            font-size: 1rem;
+        }
+
+            .btn-submit:hover,
+            .btn-comment:hover,
+            .btn-filter:hover {
+                opacity: 0.85;
+            }
+
+        .post-card {
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-meta {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-scope {
+            color: var(--accent);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.75rem;
+        }
+
+        .post-content {
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .comments-section {
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+
+        .comments-title {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.75rem;
+        }
+
+        .comment-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .comment-meta {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .empty-posts {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+    </style>
 </head>
+
 <body>
-<div>
-    
-</div>
+    <header>
+        <div class="logo">FitLife</div>
+        <a href="/Community" class="back-link">← Back</a>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1 class="hero-title">Community <span>Feed</span></h1>
+        </section>
+
+        <section class="feed-tabs">
+            <a class="feed-tab @(Model.FeedScope == "Global" ? "active" : "")"
+               href="/Community?FeedScope=Global">
+                Global
+            </a>
+
+            @if (!string.IsNullOrWhiteSpace(Model.FeedCenterId))
+            {
+                <a class="feed-tab @(Model.FeedScope == "Center" ? "active" : "")"
+                   href="/Community?FeedScope=Center&FeedCenterId=@Model.FeedCenterId">
+                    Center @Model.FeedCenterId
+                </a>
+            }
+        </section>
+
+        <section class="filter-card">
+            <h2>Choose Feed</h2>
+
+            <form method="get" action="/Community">
+                <select name="FeedScope" class="form-select">
+                    @if (Model.FeedScope == "Center")
+                    {
+                        <option value="Global">Global — alle brugere</option>
+                        <option value="Center" selected>Center — bestemt hovedcenter</option>
+                    }
+                    else
+                    {
+                        <option value="Global" selected>Global — alle brugere</option>
+                        <option value="Center">Center — bestemt hovedcenter</option>
+                    }
+                </select>
+
+                <input type="text"
+                       name="FeedCenterId"
+                       value="@Model.FeedCenterId"
+                       class="form-input"
+                       placeholder="Center ID — fx 2" />
+
+                <button type="submit" class="btn-filter">
+                    Show Feed
+                </button>
+            </form>
+        </section>
+
+        <section class="create-post-card">
+            <h2>Create Post</h2>
+
+            <form method="post" action="/Community?handler=CreatePost">
+                @Html.AntiForgeryToken()
+
+                <select name="SelectedScope" class="form-select">
+                    @if (Model.FeedScope == "Center")
+                    {
+                        <option value="Global">Global — alle brugere</option>
+                        <option value="Center" selected>Center — bestemt hovedcenter</option>
+                    }
+                    else
+                    {
+                        <option value="Global" selected>Global — alle brugere</option>
+                        <option value="Center">Center — bestemt hovedcenter</option>
+                    }
+                </select>
+
+                <input type="text"
+                       name="CenterId"
+                       value="@Model.FeedCenterId"
+                       class="form-input"
+                       placeholder="Center ID — udfyld kun hvis du vælger Center" />
+
+                <input type="text"
+                       name="NewPost.Title"
+                       class="form-input"
+                       placeholder="Post title" />
+
+                <textarea name="NewPost.Content"
+                          class="form-textarea"
+                          placeholder="Write something to the community..."></textarea>
+
+                <button type="submit" class="btn-submit">
+                    Publish Post
+                </button>
+            </form>
+        </section>
+
+        @if (!Model.Posts.Any())
+        {
+            <div class="empty-posts">
+                No posts found for this feed
+            </div>
+        }
+        else
+        {
+            @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
+            {
+                <article class="post-card">
+                    <div class="post-scope">
+                        @(string.IsNullOrWhiteSpace(post.CenterId) ? "Global post" : $"Center post · {post.CenterId}")
+                    </div>
+
+                    <h2 class="post-title">
+                        @post.Title
+                    </h2>
+
+                    <div class="post-meta">
+                        Posted by @post.AuthorUserId · @post.CreatedAt.ToLocalTime()
+                    </div>
+
+                    <p class="post-content">
+                        @post.Content
+                    </p>
+
+                    <div class="comments-section">
+                        <div class="comments-title">
+                            Comments (@post.Comments.Count)
+                        </div>
+
+                        @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                        {
+                            <div class="comment-card">
+                                <div class="comment-meta">
+                                    @comment.AuthorUserId · @comment.CreatedAt.ToLocalTime()
+                                </div>
+
+                                <div class="comment-content">
+                                    @comment.Content
+                                </div>
+                            </div>
+                        }
+
+                        <form method="post" action="/Community?handler=AddComment">
+                            @Html.AntiForgeryToken()
+
+                            <input type="hidden" name="PostId" value="@post.Id" />
+                            <input type="hidden" name="FeedScope" value="@Model.FeedScope" />
+                            <input type="hidden" name="FeedCenterId" value="@Model.FeedCenterId" />
+
+                            <textarea name="NewComment.Content"
+                              class="comment-input"
+                              placeholder="Write a comment..."></textarea>
+
+                            <button type="submit" class="btn-comment">
+                                Add Comment
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            }
+        }
+    </main>
 </body>
 </html>
