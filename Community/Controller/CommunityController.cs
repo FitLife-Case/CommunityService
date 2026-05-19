@@ -22,26 +22,30 @@ public class CommunityController : ControllerBase
         _logger = logger;
     }
 
+    // Public test endpoint: henter alle globale posts
+    [AllowAnonymous]
     [HttpGet("global/posts")]
     public async Task<ActionResult<List<Post>>> GetGlobalPosts()
     {
         var posts = await _communityService.GetGlobalPostsAsync();
-
         return Ok(posts);
     }
 
+    // Public test endpoint: henter posts for et bestemt center
+    [AllowAnonymous]
     [HttpGet("centers/{centerId}/posts")]
     public async Task<ActionResult<List<Post>>> GetCenterPosts(string centerId)
     {
         var posts = await _communityService.GetCenterPostsAsync(centerId);
-
         return Ok(posts);
     }
 
+    // Midlertidig test: opret global post uden JWT
+    [AllowAnonymous]
     [HttpPost("global/posts")]
     public async Task<ActionResult> CreateGlobalPost(CreatePostRequest request)
     {
-        var userId = GetUserId();
+        var userId = "test-user";
 
         await _communityService.CreateGlobalPostAsync(userId, request);
 
@@ -50,12 +54,14 @@ public class CommunityController : ControllerBase
         return Created();
     }
 
+    // Midlertidig test: opret center post uden JWT
+    [AllowAnonymous]
     [HttpPost("centers/{centerId}/posts")]
     public async Task<ActionResult> CreateCenterPost(
         string centerId,
         CreatePostRequest request)
     {
-        var userId = GetUserId();
+        var userId = "test-user";
 
         await _communityService.CreateCenterPostAsync(
             userId,
@@ -70,12 +76,14 @@ public class CommunityController : ControllerBase
         return Created();
     }
 
+    // Midlertidig test: tilføj kommentar uden JWT
+    [AllowAnonymous]
     [HttpPost("posts/{postId}/comments")]
     public async Task<ActionResult> AddComment(
         string postId,
         CreateCommentRequest request)
     {
-        var userId = GetUserId();
+        var userId = "test-user";
 
         await _communityService.AddCommentAsync(
             postId,
@@ -90,6 +98,7 @@ public class CommunityController : ControllerBase
         return Ok();
     }
 
+    // Bruges senere når rigtig JWT auth er koblet på
     private string GetUserId()
     {
         return User.FindFirstValue(ClaimTypes.NameIdentifier)
