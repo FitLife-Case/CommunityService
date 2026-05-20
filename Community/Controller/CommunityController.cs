@@ -8,7 +8,6 @@ namespace Community.Controllers;
 
 [ApiController]
 [Route("api/community")]
-[Authorize]
 public class CommunityController : ControllerBase
 {
     private readonly ICommunityService _communityService;
@@ -22,7 +21,6 @@ public class CommunityController : ControllerBase
         _logger = logger;
     }
 
-    // Public test endpoint: henter alle globale posts
     [AllowAnonymous]
     [HttpGet("global/posts")]
     public async Task<ActionResult<List<Post>>> GetGlobalPosts()
@@ -31,7 +29,6 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
-    // Public test endpoint: henter posts for et bestemt center
     [AllowAnonymous]
     [HttpGet("centers/{centerId}/posts")]
     public async Task<ActionResult<List<Post>>> GetCenterPosts(string centerId)
@@ -40,28 +37,31 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
-    // Midlertidig test: opret global post uden JWT
-    [AllowAnonymous]
+    [Authorize(Roles = "Member,Admin")]
     [HttpPost("global/posts")]
     public async Task<ActionResult> CreateGlobalPost(CreatePostRequest request)
     {
-        var userId = "test-user";
+        var userId = GetUserId();
+        var role = GetUserRole();
 
         await _communityService.CreateGlobalPostAsync(userId, request);
 
-        _logger.LogInformation("Global post created by user {UserId}", userId);
+        _logger.LogInformation(
+            "Global post created by user {UserId} with role {Role}",
+            userId,
+            role);
 
         return Created();
     }
 
-    // Midlertidig test: opret center post uden JWT
-    [AllowAnonymous]
+    [Authorize(Roles = "Member,Admin")]
     [HttpPost("centers/{centerId}/posts")]
     public async Task<ActionResult> CreateCenterPost(
         string centerId,
         CreatePostRequest request)
     {
-        var userId = "test-user";
+        var userId = GetUserId();
+        var role = GetUserRole();
 
         await _communityService.CreateCenterPostAsync(
             userId,
@@ -69,21 +69,22 @@ public class CommunityController : ControllerBase
             request);
 
         _logger.LogInformation(
-            "Center post created by user {UserId} for center {CenterId}",
+            "Center post created by user {UserId} with role {Role} for center {CenterId}",
             userId,
+            role,
             centerId);
 
         return Created();
     }
 
-    // Midlertidig test: tilføj kommentar uden JWT
-    [AllowAnonymous]
+    [Authorize(Roles = "Member,Admin")]
     [HttpPost("posts/{postId}/comments")]
     public async Task<ActionResult> AddComment(
         string postId,
         CreateCommentRequest request)
     {
-        var userId = "test-user";
+        var userId = GetUserId();
+        var role = GetUserRole();
 
         await _communityService.AddCommentAsync(
             postId,
@@ -91,17 +92,25 @@ public class CommunityController : ControllerBase
             request);
 
         _logger.LogInformation(
-            "Comment added to post {PostId} by user {UserId}",
+            "Comment added to post {PostId} by user {UserId} with role {Role}",
             postId,
-            userId);
+            userId,
+            role);
 
         return Ok();
     }
 
-    // Bruges senere når rigtig JWT auth er koblet på
     private string GetUserId()
     {
         return User.FindFirstValue(ClaimTypes.NameIdentifier)
-               ?? throw new UnauthorizedAccessException();
+               ?? User.FindFirstValue("sub")
+               ?? throw new UnauthorizedAccessException("User id claim missing from token");
+    }
+
+    private string GetUserRole()
+    {
+        return User.FindFirstValue(ClaimTypes.Role)
+               ?? User.FindFirstValue("role")
+               ?? "Unknown";
     }
 }
