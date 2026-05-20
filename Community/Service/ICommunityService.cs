@@ -9,16 +9,16 @@ public interface ICommunityService
     Task<List<Post>> GetCenterPostsAsync(string centerId);
 
     Task CreateGlobalPostAsync(
-        string authorUserId,
+        string authorDisplayName,
         CreatePostRequest request);
 
     Task CreateCenterPostAsync(
-        string authorUserId,
+        string authorDisplayName,
         string centerId,
         CreatePostRequest request);
 
     Task AddCommentAsync(
         string postId,
-        string authorUserId,
+        string authorDisplayName,
         CreateCommentRequest request);
 }
