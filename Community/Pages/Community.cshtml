@@ -5,136 +5,309 @@
     ViewData["Title"] = "Community";
 }
 
-<div class="community-page">
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitLife Community</title>
 
-    <div class="community-header">
-        <h1>Community</h1>
-
-        @if (Model.FeedScope == "Center")
-        {
-            <p>Center feed · Center @Model.FeedCenterId</p>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        else
-        {
-            <p>Global feed · Alle brugere</p>
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(160deg, #FFFFFF 0%, #EDE5FF 50%, #D4C2F5 100%);
+            min-height: 100vh;
+            padding-bottom: 110px;
+            color: #1a1a2e;
         }
-    </div>
 
-    <div class="create-post-card">
+        .page {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
 
-        <form method="post" asp-page-handler="CreatePost">
-            @Html.AntiForgeryToken()
+        .top-card {
+            background: linear-gradient(135deg, #6B35D9, #9B72F0);
+            color: white;
+            border-radius: 28px;
+            padding: 28px 22px;
+            box-shadow: 0 12px 34px rgba(107, 53, 217, 0.3);
+            margin-bottom: 20px;
+        }
 
-            <input type="text"
-                   name="NewPost.AuthorMemberId"
-                   class="form-input"
-                   placeholder="Member ID — midlertidigt indtil auth virker" />
+            .top-card h1 {
+                font-size: 30px;
+                margin-bottom: 8px;
+            }
 
-            <select name="SelectedScope" class="form-select">
-                @if (Model.FeedScope == "Center")
-                {
-                    <option value="Global">Global — alle brugere</option>
-                    <option value="Center" selected>Center — bestemt hovedcenter</option>
-                }
-                else
-                {
-                    <option value="Global" selected>Global — alle brugere</option>
-                    <option value="Center">Center — bestemt hovedcenter</option>
-                }
-            </select>
+            .top-card p {
+                opacity: .9;
+                font-size: 14px;
+            }
 
-            <input type="text"
-                   name="CenterId"
-                   value="@Model.FeedCenterId"
-                   class="form-input"
-                   placeholder="Center ID — udfyld kun hvis du vælger Center" />
+        .glass-card {
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(14px);
+            border-radius: 22px;
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 6px 24px rgba(107,53,217,0.10);
+            padding: 18px;
+            margin-bottom: 16px;
+        }
 
-            <input type="text"
-                   name="NewPost.Title"
-                   class="form-input"
-                   placeholder="Post title" />
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
 
-            <textarea name="NewPost.Content"
-                      class="form-textarea"
-                      placeholder="Write something to the community..."></textarea>
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            border: 1.5px solid rgba(160,120,240,0.25);
+            background: rgba(255,255,255,0.75);
+            border-radius: 14px;
+            padding: 13px 14px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            outline: none;
+            color: #1a1a2e;
+        }
 
-            <button type="submit" class="btn-submit">
-                Publish Post
-            </button>
-        </form>
-    </div>
+        .form-textarea {
+            min-height: 95px;
+            resize: vertical;
+        }
 
-    <div class="posts-section">
+            .form-input:focus,
+            .form-select:focus,
+            .form-textarea:focus {
+                border-color: #6B35D9;
+                box-shadow: 0 0 0 3px rgba(107,53,217,0.12);
+            }
+
+        .btn {
+            border: none;
+            border-radius: 14px;
+            padding: 13px 18px;
+            background: linear-gradient(135deg, #6B35D9, #9B72F0);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(107,53,217,0.25);
+        }
+
+            .btn:hover {
+                transform: translateY(-1px);
+            }
+
+        .post-card {
+            border-left: 4px solid #6B35D9;
+        }
+
+        .post-title {
+            font-size: 20px;
+            margin-bottom: 6px;
+        }
+
+        .post-meta,
+        .comment-meta {
+            color: #777;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .post-content {
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .comments {
+            border-top: 1px solid rgba(107,53,217,0.12);
+            padding-top: 14px;
+        }
+
+        .comment {
+            background: rgba(255,255,255,0.55);
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .empty {
+            text-align: center;
+            color: #777;
+            padding: 28px 12px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 420px;
+            background: rgba(80, 40, 140, 0.55);
+            backdrop-filter: blur(24px);
+            border-radius: 32px;
+            border: 1px solid rgba(200, 160, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(107, 53, 217, 0.3);
+            padding: 12px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 100;
+        }
+
+        .nav-item {
+            text-decoration: none;
+            color: rgba(230,220,245,0.72);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+            .nav-item.active {
+                color: white;
+            }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+
+        <section class="top-card">
+            <h1>Community</h1>
+            @if (Model.FeedScope == "Center")
+            {
+                <p>Center feed · Center @Model.FeedCenterId</p>
+            }
+            else
+            {
+                <p>Global feed · Alle brugere</p>
+            }
+        </section>
+
+        <section class="glass-card">
+            <div class="section-title">Vælg feed</div>
+
+            <form method="get" action="/Community">
+                <select name="FeedScope" class="form-select">
+                    @if (Model.FeedScope == "Center")
+                    {
+                        <option value="Global">Global — alle brugere</option>
+                        <option value="Center" selected>Center — bestemt hovedcenter</option>
+                    }
+                    else
+                    {
+                        <option value="Global" selected>Global — alle brugere</option>
+                        <option value="Center">Center — bestemt hovedcenter</option>
+                    }
+                </select>
+
+                <input type="text"
+                       name="FeedCenterId"
+                       value="@Model.FeedCenterId"
+                       class="form-input"
+                       placeholder="Center ID — fx 2" />
+
+                <button type="submit" class="btn">Vis feed</button>
+            </form>
+        </section>
+
+        <section class="glass-card">
+            <div class="section-title">Opret opslag</div>
+
+            <form method="post" asp-page-handler="CreatePost">
+                @Html.AntiForgeryToken()
+
+                <input type="text"
+                       name="NewPost.AuthorMemberId"
+                       class="form-input"
+                       placeholder="Member ID — midlertidigt indtil auth virker" />
+
+                <select name="SelectedScope" class="form-select">
+                    @if (Model.FeedScope == "Center")
+                    {
+                        <option value="Global">Global — alle brugere</option>
+                        <option value="Center" selected>Center — bestemt hovedcenter</option>
+                    }
+                    else
+                    {
+                        <option value="Global" selected>Global — alle brugere</option>
+                        <option value="Center">Center — bestemt hovedcenter</option>
+                    }
+                </select>
+
+                <input type="text"
+                       name="CenterId"
+                       value="@Model.FeedCenterId"
+                       class="form-input"
+                       placeholder="Center ID — udfyld kun hvis Center vælges" />
+
+                <input type="text"
+                       name="NewPost.Title"
+                       class="form-input"
+                       placeholder="Titel" />
+
+                <textarea name="NewPost.Content"
+                          class="form-textarea"
+                          placeholder="Skriv noget til community..."></textarea>
+
+                <button type="submit" class="btn">Publicér opslag</button>
+            </form>
+        </section>
 
         @if (!Model.Posts.Any())
         {
-            <div class="empty-state">
-                <p>Ingen opslag endnu.</p>
-            </div>
+            <section class="glass-card empty">
+                Ingen opslag endnu.
+            </section>
         }
         else
         {
-            @foreach (var post in Model.Posts)
+            @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
             {
-                <div class="post-card">
+                <article class="glass-card post-card">
+                    <h2 class="post-title">@post.Title</h2>
 
-                    <div class="post-header">
-                        <div>
-                            <h2>@post.Title</h2>
+                    <div class="post-meta">
+                        Posted by
+                        @(string.IsNullOrWhiteSpace(post.AuthorDisplayName)
+                                        ? post.AuthorUserId
+                                        : post.AuthorDisplayName)
+                · @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+            </div>
 
-                            <p class="post-meta">
-                                Posted by
-                                @(string.IsNullOrWhiteSpace(post.AuthorDisplayName)
-                                                        ? post.AuthorUserId
-                                                        : post.AuthorDisplayName)
-                    </p>
+                    <div class="post-content">@post.Content</div>
 
-                            <p class="post-date">
-                                @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
-                            </p>
-                        </div>
-                    </div>
+                    <div class="comments">
+                        <div class="section-title">Kommentarer (@post.Comments.Count)</div>
 
-                    <div class="post-content">
-                        <p>@post.Content</p>
-                    </div>
-
-                    <div class="comments-section">
-
-                        <h3>Comments</h3>
-
-                @if (!post.Comments.Any())
+                @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
                         {
-                            <p>Ingen kommentarer endnu.</p>
-                        }
-                        else
-                        {
-                            @foreach (var comment in post.Comments)
-                            {
-                                <div class="comment">
-
-                                    <p class="comment-author">
-                                        @(string.IsNullOrWhiteSpace(comment.AuthorDisplayName)
-                                                                ? comment.AuthorUserId
-                                                                : comment.AuthorDisplayName)
-                    </p>
-
-                                    <p>@comment.Content</p>
-
-                                    <p class="comment-date">
-                                        @comment.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
-                                    </p>
-                                </div>
+                            <div class="comment">
+                                <div class="comment-meta">
+                                    @(string.IsNullOrWhiteSpace(comment.AuthorDisplayName)
+                                                            ? comment.AuthorUserId
+                                                            : comment.AuthorDisplayName)
+                        · @comment.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                    </div>
+                    <div>@comment.Content</div>
+                </div>
                                 }
-                        }
 
                         <form method="post" asp-page-handler="AddComment">
-
                             @Html.AntiForgeryToken()
 
-                            <input type="hidden"
-                                   name="PostId"
-                                   value="@post.Id" />
+                            <input type="hidden" name="PostId" value="@post.Id" />
 
                             <input type="text"
                                    name="NewComment.AuthorMemberId"
@@ -143,20 +316,23 @@
 
                             <textarea name="NewComment.Content"
                               class="form-textarea"
-                              placeholder="Write a comment..."></textarea>
+                              placeholder="Skriv en kommentar..."></textarea>
 
-                            <button type="submit" class="btn-submit">
-                                Add Comment
-                            </button>
-
+                            <button type="submit" class="btn">Tilføj kommentar</button>
                         </form>
-
                     </div>
-
-                </div>
+                </article>
             }
         }
-
     </div>
 
-</div>
+    <nav class="bottom-nav">
+        <a href="/Members/Dashboard" class="nav-item">Hjem</a>
+        <a href="/Members/Aktivitet" class="nav-item">Aktivitet</a>
+        <a href="/Community?FeedScope=Center&FeedCenterId=2" class="nav-item active">Community</a>
+        <a href="/booking" class="nav-item">Hold</a>
+        <a href="/Members/Profil" class="nav-item">Profil</a>
+    </nav>
+
+</body>
+</html>
