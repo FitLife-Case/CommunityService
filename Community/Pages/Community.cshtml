@@ -104,10 +104,6 @@
             box-shadow: 0 8px 24px rgba(107,53,217,0.25);
         }
 
-            .btn:hover {
-                transform: translateY(-1px);
-            }
-
         .post-card {
             border-left: 4px solid #6B35D9;
         }
@@ -225,8 +221,11 @@
         <section class="glass-card">
             <div class="section-title">Opret opslag</div>
 
-            <form method="post" asp-page-handler="CreatePost">
+            <form method="post" action="/Community?handler=CreatePost">
                 @Html.AntiForgeryToken()
+
+                <input type="hidden" name="FeedScope" value="@Model.FeedScope" />
+                <input type="hidden" name="FeedCenterId" value="@Model.FeedCenterId" />
 
                 <input type="text"
                        name="NewPost.AuthorMemberId"
@@ -304,9 +303,11 @@
                 </div>
                                 }
 
-                        <form method="post" asp-page-handler="AddComment">
+                        <form method="post" action="/Community?handler=AddComment">
                             @Html.AntiForgeryToken()
 
+                            <input type="hidden" name="FeedScope" value="@Model.FeedScope" />
+                            <input type="hidden" name="FeedCenterId" value="@Model.FeedCenterId" />
                             <input type="hidden" name="PostId" value="@post.Id" />
 
                             <input type="text"
