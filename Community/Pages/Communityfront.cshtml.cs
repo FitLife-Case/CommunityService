@@ -1,4 +1,5 @@
-﻿using Community.Models;
+﻿using System.Net.Http.Headers;
+using Community.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -54,6 +55,8 @@ public class CommunityfrontModel : PageModel
 
         try
         {
+            AddJwtTokenToRequest();
+
             var isCenterPost =
                 SelectedScope == "Center" &&
                 !string.IsNullOrWhiteSpace(CenterId);
@@ -91,6 +94,8 @@ public class CommunityfrontModel : PageModel
 
         try
         {
+            AddJwtTokenToRequest();
+
             var response = await _httpClient.PostAsJsonAsync(
                 $"{gateway}/api/community/posts/{PostId}/comments",
                 NewComment);
@@ -146,6 +151,17 @@ public class CommunityfrontModel : PageModel
         {
             _logger.LogError(ex, "Error loading community posts");
             Posts = new();
+        }
+    }
+
+    private void AddJwtTokenToRequest()
+    {
+        var token = Request.Cookies["JwtToken"];
+
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
         }
     }
 }
