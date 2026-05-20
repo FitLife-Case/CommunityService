@@ -59,13 +59,15 @@ public class CommunityService : ICommunityService
         return posts;
     }
 
-    public async Task CreateGlobalPostAsync(string authorUserId, CreatePostRequest request)
+    public async Task CreateGlobalPostAsync(string authorDisplayName, CreatePostRequest request)
     {
         ValidateCreatePostRequest(request);
 
         var post = new Post
         {
-            AuthorUserId = authorUserId,
+            AuthorUserId = authorDisplayName,
+            AuthorMemberId = request.AuthorMemberId,
+            AuthorDisplayName = authorDisplayName,
             Scope = CommunityScope.Global,
             Title = request.Title.Trim(),
             Content = request.Content.Trim()
@@ -75,10 +77,13 @@ public class CommunityService : ICommunityService
 
         _cache.Remove(GlobalPostsCacheKey);
 
-        _logger.LogInformation("Global post created by user {AuthorUserId}", authorUserId);
+        _logger.LogInformation(
+            "Global post created by member {AuthorMemberId} as {AuthorDisplayName}",
+            request.AuthorMemberId,
+            authorDisplayName);
     }
 
-    public async Task CreateCenterPostAsync(string authorUserId, string centerId, CreatePostRequest request)
+    public async Task CreateCenterPostAsync(string authorDisplayName, string centerId, CreatePostRequest request)
     {
         ValidateCreatePostRequest(request);
 
@@ -89,7 +94,9 @@ public class CommunityService : ICommunityService
 
         var post = new Post
         {
-            AuthorUserId = authorUserId,
+            AuthorUserId = authorDisplayName,
+            AuthorMemberId = request.AuthorMemberId,
+            AuthorDisplayName = authorDisplayName,
             CenterId = centerId,
             Scope = CommunityScope.Center,
             Title = request.Title.Trim(),
@@ -100,10 +107,14 @@ public class CommunityService : ICommunityService
 
         _cache.Remove(GetCenterPostsCacheKey(centerId));
 
-        _logger.LogInformation("Center post created by user {AuthorUserId} for center {CenterId}", authorUserId, centerId);
+        _logger.LogInformation(
+            "Center post created by member {AuthorMemberId} as {AuthorDisplayName} for center {CenterId}",
+            request.AuthorMemberId,
+            authorDisplayName,
+            centerId);
     }
 
-    public async Task AddCommentAsync(string postId, string authorUserId, CreateCommentRequest request)
+    public async Task AddCommentAsync(string postId, string authorDisplayName, CreateCommentRequest request)
     {
         if (string.IsNullOrWhiteSpace(postId))
         {
@@ -117,7 +128,9 @@ public class CommunityService : ICommunityService
 
         var comment = new Comment
         {
-            AuthorUserId = authorUserId,
+            AuthorUserId = authorDisplayName,
+            AuthorMemberId = request.AuthorMemberId,
+            AuthorDisplayName = authorDisplayName,
             Content = request.Content.Trim()
         };
 
@@ -125,7 +138,11 @@ public class CommunityService : ICommunityService
 
         _cache.Remove(GlobalPostsCacheKey);
 
-        _logger.LogInformation("Comment added to post {PostId} by user {AuthorUserId}", postId, authorUserId);
+        _logger.LogInformation(
+            "Comment added to post {PostId} by member {AuthorMemberId} as {AuthorDisplayName}",
+            postId,
+            request.AuthorMemberId,
+            authorDisplayName);
     }
 
     private static string GetCenterPostsCacheKey(string centerId)

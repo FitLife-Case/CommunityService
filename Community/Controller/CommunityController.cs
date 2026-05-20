@@ -1,8 +1,7 @@
+using System.Net.Http.Json;
 using Community.Models;
 using Community.Service;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Community.Controllers;
 
@@ -11,17 +10,19 @@ namespace Community.Controllers;
 public class CommunityController : ControllerBase
 {
     private readonly ICommunityService _communityService;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<CommunityController> _logger;
 
     public CommunityController(
         ICommunityService communityService,
+        IHttpClientFactory httpClientFactory,
         ILogger<CommunityController> logger)
     {
         _communityService = communityService;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
-    [AllowAnonymous]
     [HttpGet("global/posts")]
     public async Task<ActionResult<List<Post>>> GetGlobalPosts()
     {
@@ -29,7 +30,6 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
-    [AllowAnonymous]
     [HttpGet("centers/{centerId}/posts")]
     public async Task<ActionResult<List<Post>>> GetCenterPosts(string centerId)
     {
@@ -37,80 +37,88 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
-    [Authorize(Roles = "Member,Admin")]
     [HttpPost("global/posts")]
     public async Task<ActionResult> CreateGlobalPost(CreatePostRequest request)
     {
-        var userId = GetUserId();
-        var role = GetUserRole();
+        var authorName = await GetAuthorNameAsync(request.AuthorMemberId);
 
-        await _communityService.CreateGlobalPostAsync(userId, request);
+        await _communityService.CreateGlobalPostAsync(authorName, request);
 
         _logger.LogInformation(
-            "Global post created by user {UserId} with role {Role}",
-            userId,
-            role);
+            "Global post created by member {MemberId} as {AuthorName}",
+            request.AuthorMemberId,
+            authorName);
 
         return Created();
     }
 
-    [Authorize(Roles = "Member,Admin")]
     [HttpPost("centers/{centerId}/posts")]
     public async Task<ActionResult> CreateCenterPost(
         string centerId,
         CreatePostRequest request)
     {
-        var userId = GetUserId();
-        var role = GetUserRole();
+        var authorName = await GetAuthorNameAsync(request.AuthorMemberId);
 
         await _communityService.CreateCenterPostAsync(
-            userId,
+            authorName,
             centerId,
             request);
 
         _logger.LogInformation(
-            "Center post created by user {UserId} with role {Role} for center {CenterId}",
-            userId,
-            role,
+            "Center post created by member {MemberId} as {AuthorName} for center {CenterId}",
+            request.AuthorMemberId,
+            authorName,
             centerId);
 
         return Created();
     }
 
-    [Authorize(Roles = "Member,Admin")]
     [HttpPost("posts/{postId}/comments")]
     public async Task<ActionResult> AddComment(
         string postId,
         CreateCommentRequest request)
     {
-        var userId = GetUserId();
-        var role = GetUserRole();
+        var authorName = await GetAuthorNameAsync(request.AuthorMemberId);
 
         await _communityService.AddCommentAsync(
             postId,
-            userId,
+            authorName,
             request);
 
         _logger.LogInformation(
-            "Comment added to post {PostId} by user {UserId} with role {Role}",
+            "Comment added to post {PostId} by member {MemberId} as {AuthorName}",
             postId,
-            userId,
-            role);
+            request.AuthorMemberId,
+            authorName);
 
         return Ok();
     }
 
-    private string GetUserId()
+    private async Task<string> GetAuthorNameAsync(string memberId)
     {
-        return User.FindFirstValue(ClaimTypes.Name)
-               ?? User.FindFirstValue("name")
-               ?? "unknown-user";
-    }
+        if (string.IsNullOrWhiteSpace(memberId))
+            return "guest";
 
-    private string GetUserRole()
-    {
-        return User.FindFirstValue(ClaimTypes.Role)
-               ?? User.FindFirstValue("role")
-               ?? "Unknown";
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+
+            var member = await client.GetFromJsonAsync<MemberDto>(
+                $"http://haav-member-service:8080/api/Members/{memberId}");
+
+            if (member == null)
+                return memberId;
+
+            var fullName = $"{member.FirstName} {member.LastName}".Trim();
+
+            return string.IsNullOrWhiteSpace(fullName)
+                ? memberId
+                : fullName;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not get member {MemberId} from MemberService", memberId);
+            return memberId;
+        }
     }
 }
