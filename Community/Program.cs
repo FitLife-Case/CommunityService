@@ -81,13 +81,13 @@ try
 
     var app = builder.Build();
 
-    // Swagger slået til i både Development og Docker/Production
+    // Swagger
     app.UseSwagger();
     app.UseSwaggerUI();
 
     app.UseHttpsRedirection();
 
-    // Auth middleware
+    // Authentication + Authorization
     app.UseAuthentication();
     app.UseAuthorization();
 
