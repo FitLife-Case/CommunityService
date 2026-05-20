@@ -104,7 +104,10 @@ public class CommunityController : ControllerBase
     {
         return User.FindFirstValue(ClaimTypes.NameIdentifier)
                ?? User.FindFirstValue("sub")
-               ?? throw new UnauthorizedAccessException("User id claim missing from token");
+               ?? User.FindFirstValue(ClaimTypes.Name)
+               ?? User.FindFirstValue("name")
+               ?? User.FindFirstValue("username")
+               ?? throw new UnauthorizedAccessException("User id/name claim missing from token");
     }
 
     private string GetUserRole()
