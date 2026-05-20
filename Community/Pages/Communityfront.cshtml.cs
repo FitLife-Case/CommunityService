@@ -70,9 +70,7 @@ public class CommunityfrontModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 if (isCenterPost)
-                {
                     return Redirect($"/Community?FeedScope=Center&FeedCenterId={CenterId}");
-                }
 
                 return Redirect("/Community?FeedScope=Global");
             }
@@ -103,21 +101,16 @@ public class CommunityfrontModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 if (FeedScope == "Center" && !string.IsNullOrWhiteSpace(FeedCenterId))
-                {
                     return Redirect($"/Community?FeedScope=Center&FeedCenterId={FeedCenterId}");
-                }
 
                 return Redirect("/Community?FeedScope=Global");
             }
 
-            _logger.LogWarning(
-                "Failed creating comment for post {PostId}. Status code: {StatusCode}",
-                PostId,
-                response.StatusCode);
+            _logger.LogWarning("Failed creating comment. Status code: {StatusCode}", response.StatusCode);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating comment for post {PostId}", PostId);
+            _logger.LogError(ex, "Error creating comment");
         }
 
         await LoadPostsAsync();
@@ -128,40 +121,33 @@ public class CommunityfrontModel : PageModel
     {
         var gateway = _configuration["GatewayUrl"] ?? "http://haav-gateway";
 
-        try
+        var endpoint =
+            FeedScope == "Center" && !string.IsNullOrWhiteSpace(FeedCenterId)
+                ? $"{gateway}/api/community/centers/{FeedCenterId}/posts"
+                : $"{gateway}/api/community/global/posts";
+
+        var response = await _httpClient.GetAsync(endpoint);
+
+        if (!response.IsSuccessStatusCode)
         {
-            var endpoint =
-                FeedScope == "Center" &&
-                !string.IsNullOrWhiteSpace(FeedCenterId)
-                    ? $"{gateway}/api/community/centers/{FeedCenterId}/posts"
-                    : $"{gateway}/api/community/global/posts";
-
-            var response = await _httpClient.GetAsync(endpoint);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Failed loading posts. Status code: {StatusCode}", response.StatusCode);
-                Posts = new();
-                return;
-            }
-
-            Posts = await response.Content.ReadFromJsonAsync<List<Post>>() ?? new();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading community posts");
             Posts = new();
+            return;
         }
+
+        Posts = await response.Content.ReadFromJsonAsync<List<Post>>() ?? new();
     }
 
     private void AddJwtTokenToRequest()
     {
         var token = Request.Cookies["JwtToken"];
 
-        if (!string.IsNullOrWhiteSpace(token))
+        if (string.IsNullOrWhiteSpace(token))
         {
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token);
+            _logger.LogWarning("JwtToken cookie was missing");
+            return;
         }
+
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
     }
 }
