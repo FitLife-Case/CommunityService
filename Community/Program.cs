@@ -22,13 +22,14 @@ try
     builder.Logging.ClearProviders();
     builder.Host.UseNLog();
 
-    // ── Vault ──────────────────────────────────────────────────────────────
     var vaultUrl = builder.Configuration["Vault__Url"] ?? "http://haav-vault:8200";
     var vaultToken = builder.Configuration["Vault__Token"] ?? "haav-root-token";
 
-    var vaultClient = new VaultClient(new VaultClientSettings(vaultUrl, new TokenAuthMethodInfo(vaultToken)));
+    var vaultClient = new VaultClient(
+        new VaultClientSettings(vaultUrl, new TokenAuthMethodInfo(vaultToken)));
 
     IDictionary<string, object> secrets = null!;
+
     for (int i = 0; i < 10; i++)
     {
         try
@@ -36,6 +37,7 @@ try
             var vaultSecrets = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync(
                 path: "communityservice",
                 mountPoint: "secret");
+
             secrets = vaultSecrets.Data.Data;
             break;
         }
@@ -74,6 +76,7 @@ try
         .AddJwtBearer(options =>
         {
             options.MapInboundClaims = false;
+
             options.Events = new JwtBearerEvents
             {
                 OnMessageReceived = context =>
@@ -82,30 +85,36 @@ try
                         context.Request.Cookies["JwtToken"]
                         ?? context.Request.Cookies["jwt"]
                         ?? context.Request.Cookies["access_token"];
+
                     if (!string.IsNullOrWhiteSpace(token))
-                    {
                         context.Token = token;
-                    }
+
                     return Task.CompletedTask;
                 }
             };
+
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
+
                 ValidIssuer = jwtIssuer,
                 ValidAudience = jwtAudience,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-                RoleClaimType = ClaimTypes.Role,
-                NameClaimType = ClaimTypes.Name
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtSecret)),
+
+                RoleClaimType = "role",
+                NameClaimType = "username"
             };
         });
 
     builder.Services.AddAuthorization();
 
-    builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConnectionString));
+    builder.Services.AddSingleton<IMongoClient>(_ =>
+        new MongoClient(mongoConnectionString));
+
     builder.Services.AddScoped<IMongoDatabase>(provider =>
     {
         var client = provider.GetRequiredService<IMongoClient>();
@@ -119,9 +128,12 @@ try
 
     app.UseSwagger();
     app.UseSwaggerUI();
+
     app.UseHttpsRedirection();
+
     app.UseAuthentication();
     app.UseAuthorization();
+
     app.MapControllers();
     app.MapRazorPages();
 
