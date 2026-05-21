@@ -38,12 +38,10 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
-    [Authorize]
+    [Authorize(Roles = "Member,Admin")]
     [HttpPost("global/posts")]
     public async Task<ActionResult> CreateGlobalPost(CreatePostRequest request)
     {
-        LogClaims();
-
         var memberId = GetCurrentMemberId();
 
         if (string.IsNullOrWhiteSpace(memberId))
@@ -63,14 +61,12 @@ public class CommunityController : ControllerBase
         return Created();
     }
 
-    [Authorize]
+    [Authorize(Roles = "Member,Admin")]
     [HttpPost("centers/{centerId}/posts")]
     public async Task<ActionResult> CreateCenterPost(
         string centerId,
         CreatePostRequest request)
     {
-        LogClaims();
-
         var memberId = GetCurrentMemberId();
 
         if (string.IsNullOrWhiteSpace(memberId))
@@ -94,14 +90,12 @@ public class CommunityController : ControllerBase
         return Created();
     }
 
-    [Authorize]
+    [Authorize(Roles = "Member,Admin")]
     [HttpPost("posts/{postId}/comments")]
     public async Task<ActionResult> AddComment(
         string postId,
         CreateCommentRequest request)
     {
-        LogClaims();
-
         var memberId = GetCurrentMemberId();
 
         if (string.IsNullOrWhiteSpace(memberId))
@@ -127,27 +121,20 @@ public class CommunityController : ControllerBase
 
     private string? GetCurrentMemberId()
     {
-        return User.FindFirst("memberId")?.Value
+        return Request.Cookies["memberId"]
+            ?? User.FindFirst("memberId")?.Value
             ?? User.FindFirst("MemberId")?.Value
             ?? User.FindFirst("member_id")?.Value
-            ?? User.FindFirst("userId")?.Value
-            ?? User.FindFirst("UserId")?.Value
+            ?? User.FindFirst("profileId")?.Value
+            ?? User.FindFirst("ProfileId")?.Value
             ?? User.FindFirst("sub")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    }
-
-    private void LogClaims()
-    {
-        foreach (var claim in User.Claims)
-        {
-            _logger.LogInformation("JWT CLAIM {Type}: {Value}", claim.Type, claim.Value);
-        }
     }
 
     private async Task<string> GetAuthorNameAsync(string memberId)
     {
         if (string.IsNullOrWhiteSpace(memberId))
-            return "guest";
+            return GetUsernameFallback();
 
         try
         {
@@ -157,18 +144,26 @@ public class CommunityController : ControllerBase
                 $"http://haav-member-service:8080/api/Members/{memberId}");
 
             if (member == null)
-                return memberId;
+                return GetUsernameFallback();
 
             var fullName = $"{member.FirstName} {member.LastName}".Trim();
 
             return string.IsNullOrWhiteSpace(fullName)
-                ? memberId
+                ? GetUsernameFallback()
                 : fullName;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not get member {MemberId} from MemberService", memberId);
-            return memberId;
+            return GetUsernameFallback();
         }
+    }
+
+    private string GetUsernameFallback()
+    {
+        return Request.Cookies["username"]
+            ?? User.FindFirst("username")?.Value
+            ?? User.FindFirst("name")?.Value
+            ?? "member";
     }
 }
