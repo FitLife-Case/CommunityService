@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using NLog;
 using NLog.Web;
+using VaultSharp;
+using VaultSharp.V1.AuthMethods.Token;
 
 var logger = LogManager.Setup()
     .LoadConfigurationFromFile("NLog.config")
@@ -19,6 +21,39 @@ try
 
     builder.Logging.ClearProviders();
     builder.Host.UseNLog();
+
+    // ── Vault ──────────────────────────────────────────────────────────────
+    var vaultUrl = builder.Configuration["Vault__Url"] ?? "http://haav-vault:8200";
+    var vaultToken = builder.Configuration["Vault__Token"] ?? "haav-root-token";
+
+    var vaultClient = new VaultClient(new VaultClientSettings(vaultUrl, new TokenAuthMethodInfo(vaultToken)));
+
+    IDictionary<string, object> secrets = null!;
+    for (int i = 0; i < 10; i++)
+    {
+        try
+        {
+            var vaultSecrets = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync(
+                path: "communityservice",
+                mountPoint: "secret");
+            secrets = vaultSecrets.Data.Data;
+            break;
+        }
+        catch
+        {
+            logger.Warn("Vault not ready, retrying in 3 seconds... attempt {0}/10", i + 1);
+            await Task.Delay(3000);
+        }
+    }
+
+    if (secrets == null)
+        throw new Exception("Could not connect to Vault after 10 attempts");
+
+    var mongoConnectionString = secrets["Mongo__ConnectionString"].ToString()!;
+    var mongoDatabaseName = secrets["Mongo__DatabaseName"].ToString()!;
+    var jwtSecret = secrets["Jwt__Secret"].ToString()!;
+    var jwtIssuer = secrets["Jwt__Issuer"].ToString()!;
+    var jwtAudience = secrets["Jwt__Audience"].ToString()!;
 
     builder.Services.AddControllers();
     builder.Services.AddRazorPages();
@@ -39,7 +74,6 @@ try
         .AddJwtBearer(options =>
         {
             options.MapInboundClaims = false;
-
             options.Events = new JwtBearerEvents
             {
                 OnMessageReceived = context =>
@@ -48,29 +82,22 @@ try
                         context.Request.Cookies["JwtToken"]
                         ?? context.Request.Cookies["jwt"]
                         ?? context.Request.Cookies["access_token"];
-
                     if (!string.IsNullOrWhiteSpace(token))
                     {
                         context.Token = token;
                     }
-
                     return Task.CompletedTask;
                 }
             };
-
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidAudience = builder.Configuration["Jwt:Audience"],
-
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
-
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
                 RoleClaimType = ClaimTypes.Role,
                 NameClaimType = ClaimTypes.Name
             };
@@ -78,13 +105,11 @@ try
 
     builder.Services.AddAuthorization();
 
-    builder.Services.AddSingleton<IMongoClient>(_ =>
-        new MongoClient(builder.Configuration["Mongo:ConnectionString"]));
-
+    builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConnectionString));
     builder.Services.AddScoped<IMongoDatabase>(provider =>
     {
         var client = provider.GetRequiredService<IMongoClient>();
-        return client.GetDatabase(builder.Configuration["Mongo:DatabaseName"]);
+        return client.GetDatabase(mongoDatabaseName);
     });
 
     builder.Services.AddScoped<ICommunityRepository, CommunityRepository>();
@@ -94,12 +119,9 @@ try
 
     app.UseSwagger();
     app.UseSwaggerUI();
-
     app.UseHttpsRedirection();
-
     app.UseAuthentication();
     app.UseAuthorization();
-
     app.MapControllers();
     app.MapRazorPages();
 
