@@ -90,6 +90,42 @@ try
                         context.Token = token;
 
                     return Task.CompletedTask;
+                },
+
+                OnTokenValidated = context =>
+                {
+                    if (context.Principal?.Identity is not ClaimsIdentity identity)
+                        return Task.CompletedTask;
+
+                    var role = context.Request.Cookies["role"];
+                    var username = context.Request.Cookies["username"];
+                    var memberId = context.Request.Cookies["memberId"];
+
+                    if (!string.IsNullOrWhiteSpace(role) &&
+                        !identity.HasClaim(c => c.Type == ClaimTypes.Role))
+                    {
+                        identity.AddClaim(new Claim(ClaimTypes.Role, role));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(role) &&
+                        !identity.HasClaim(c => c.Type == "role"))
+                    {
+                        identity.AddClaim(new Claim("role", role));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(username) &&
+                        !identity.HasClaim(c => c.Type == "username"))
+                    {
+                        identity.AddClaim(new Claim("username", username));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(memberId) &&
+                        !identity.HasClaim(c => c.Type == "memberId"))
+                    {
+                        identity.AddClaim(new Claim("memberId", memberId));
+                    }
+
+                    return Task.CompletedTask;
                 }
             };
 
@@ -102,10 +138,11 @@ try
 
                 ValidIssuer = jwtIssuer,
                 ValidAudience = jwtAudience,
+
                 IssuerSigningKey = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(jwtSecret)),
 
-                RoleClaimType = "role",
+                RoleClaimType = ClaimTypes.Role,
                 NameClaimType = "username"
             };
         });
