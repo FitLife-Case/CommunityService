@@ -227,11 +227,6 @@
                 <input type="hidden" name="FeedScope" value="@Model.FeedScope" />
                 <input type="hidden" name="FeedCenterId" value="@Model.FeedCenterId" />
 
-                <input type="text"
-                       name="NewPost.AuthorMemberId"
-                       class="form-input"
-                       placeholder="Member ID — midlertidigt indtil auth virker" />
-
                 <select name="SelectedScope" class="form-select">
                     @if (Model.FeedScope == "Center")
                     {
@@ -309,11 +304,6 @@
                             <input type="hidden" name="FeedScope" value="@Model.FeedScope" />
                             <input type="hidden" name="FeedCenterId" value="@Model.FeedCenterId" />
                             <input type="hidden" name="PostId" value="@post.Id" />
-
-                            <input type="text"
-                                   name="NewComment.AuthorMemberId"
-                                   class="form-input"
-                                   placeholder="Member ID" />
 
                             <textarea name="NewComment.Content"
                               class="form-textarea"

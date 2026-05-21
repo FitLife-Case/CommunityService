@@ -139,11 +139,16 @@ public class CommunityfrontModel : PageModel
 
     private void AddJwtTokenToRequest()
     {
-        var token = Request.Cookies["JwtToken"];
+        var token =
+            Request.Cookies["JwtToken"]
+            ?? Request.Cookies["jwt"]
+            ?? Request.Cookies["access_token"];
+
+        _httpClient.DefaultRequestHeaders.Authorization = null;
 
         if (string.IsNullOrWhiteSpace(token))
         {
-            _logger.LogWarning("JwtToken cookie was missing");
+            _logger.LogWarning("JWT cookie was missing");
             return;
         }
 
