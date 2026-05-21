@@ -40,6 +40,24 @@ try
         {
             options.MapInboundClaims = false;
 
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var token =
+                        context.Request.Cookies["JwtToken"]
+                        ?? context.Request.Cookies["jwt"]
+                        ?? context.Request.Cookies["access_token"];
+
+                    if (!string.IsNullOrWhiteSpace(token))
+                    {
+                        context.Token = token;
+                    }
+
+                    return Task.CompletedTask;
+                }
+            };
+
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,

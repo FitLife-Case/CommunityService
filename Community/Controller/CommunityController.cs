@@ -1,6 +1,7 @@
-using System.Net.Http.Json;
+using System.Security.Claims;
 using Community.Models;
 using Community.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Community.Controllers;
@@ -37,27 +38,47 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
+    [Authorize]
     [HttpPost("global/posts")]
     public async Task<ActionResult> CreateGlobalPost(CreatePostRequest request)
     {
-        var authorName = await GetAuthorNameAsync(request.AuthorMemberId);
+        LogClaims();
+
+        var memberId = GetCurrentMemberId();
+
+        if (string.IsNullOrWhiteSpace(memberId))
+            return Unauthorized("No member id found in JWT claims.");
+
+        request.AuthorMemberId = memberId;
+
+        var authorName = await GetAuthorNameAsync(memberId);
 
         await _communityService.CreateGlobalPostAsync(authorName, request);
 
         _logger.LogInformation(
             "Global post created by member {MemberId} as {AuthorName}",
-            request.AuthorMemberId,
+            memberId,
             authorName);
 
         return Created();
     }
 
+    [Authorize]
     [HttpPost("centers/{centerId}/posts")]
     public async Task<ActionResult> CreateCenterPost(
         string centerId,
         CreatePostRequest request)
     {
-        var authorName = await GetAuthorNameAsync(request.AuthorMemberId);
+        LogClaims();
+
+        var memberId = GetCurrentMemberId();
+
+        if (string.IsNullOrWhiteSpace(memberId))
+            return Unauthorized("No member id found in JWT claims.");
+
+        request.AuthorMemberId = memberId;
+
+        var authorName = await GetAuthorNameAsync(memberId);
 
         await _communityService.CreateCenterPostAsync(
             authorName,
@@ -66,19 +87,29 @@ public class CommunityController : ControllerBase
 
         _logger.LogInformation(
             "Center post created by member {MemberId} as {AuthorName} for center {CenterId}",
-            request.AuthorMemberId,
+            memberId,
             authorName,
             centerId);
 
         return Created();
     }
 
+    [Authorize]
     [HttpPost("posts/{postId}/comments")]
     public async Task<ActionResult> AddComment(
         string postId,
         CreateCommentRequest request)
     {
-        var authorName = await GetAuthorNameAsync(request.AuthorMemberId);
+        LogClaims();
+
+        var memberId = GetCurrentMemberId();
+
+        if (string.IsNullOrWhiteSpace(memberId))
+            return Unauthorized("No member id found in JWT claims.");
+
+        request.AuthorMemberId = memberId;
+
+        var authorName = await GetAuthorNameAsync(memberId);
 
         await _communityService.AddCommentAsync(
             postId,
@@ -88,10 +119,29 @@ public class CommunityController : ControllerBase
         _logger.LogInformation(
             "Comment added to post {PostId} by member {MemberId} as {AuthorName}",
             postId,
-            request.AuthorMemberId,
+            memberId,
             authorName);
 
         return Ok();
+    }
+
+    private string? GetCurrentMemberId()
+    {
+        return User.FindFirst("memberId")?.Value
+            ?? User.FindFirst("MemberId")?.Value
+            ?? User.FindFirst("member_id")?.Value
+            ?? User.FindFirst("userId")?.Value
+            ?? User.FindFirst("UserId")?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private void LogClaims()
+    {
+        foreach (var claim in User.Claims)
+        {
+            _logger.LogInformation("JWT CLAIM {Type}: {Value}", claim.Type, claim.Value);
+        }
     }
 
     private async Task<string> GetAuthorNameAsync(string memberId)
