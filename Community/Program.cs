@@ -102,15 +102,15 @@ try
                     var memberId = context.Request.Cookies["memberId"];
 
                     if (!string.IsNullOrWhiteSpace(role) &&
-                        !identity.HasClaim(c => c.Type == ClaimTypes.Role))
-                    {
-                        identity.AddClaim(new Claim(ClaimTypes.Role, role));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(role) &&
                         !identity.HasClaim(c => c.Type == "role"))
                     {
                         identity.AddClaim(new Claim("role", role));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(role) &&
+                        !identity.HasClaim(c => c.Type == ClaimTypes.Role))
+                    {
+                        identity.AddClaim(new Claim(ClaimTypes.Role, role));
                     }
 
                     if (!string.IsNullOrWhiteSpace(username) &&
@@ -142,7 +142,7 @@ try
                 IssuerSigningKey = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(jwtSecret)),
 
-                RoleClaimType = ClaimTypes.Role,
+                RoleClaimType = "role",
                 NameClaimType = "username"
             };
         });
