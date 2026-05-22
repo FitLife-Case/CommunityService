@@ -81,7 +81,7 @@
                 display: block;
             }
 
-        .card, .post {
+        .card, .post-card {
             background: rgba(255,255,255,.78);
             backdrop-filter: blur(14px);
             border: 1px solid rgba(255,255,255,.8);
@@ -91,13 +91,15 @@
             box-shadow: 0 8px 26px rgba(107,53,217,.10);
         }
 
-        .post-title {
+        .post-header h3 {
             font-size: 18px;
             font-weight: 800;
             margin-bottom: 6px;
         }
 
         .post-meta {
+            display: flex;
+            gap: 6px;
             font-size: 12px;
             color: #777;
             margin-bottom: 12px;
@@ -109,30 +111,40 @@
             margin-bottom: 14px;
         }
 
-        .comments {
+        .comments-section {
             margin-top: 14px;
             padding-top: 12px;
             border-top: 1px solid rgba(107,53,217,.12);
         }
 
-            .comments h3 {
+            .comments-section h4 {
                 font-size: 14px;
                 margin-bottom: 10px;
             }
 
-        .comment {
+        .comment-card {
             background: rgba(107,53,217,.06);
             border-radius: 14px;
             padding: 10px;
             margin-bottom: 8px;
         }
 
-            .comment span {
-                display: block;
-                font-size: 11px;
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+            .comment-header span {
                 color: #777;
-                margin: 3px 0 6px;
+                font-size: 11px;
             }
+
+        .comment-content {
+            font-size: 14px;
+        }
 
         textarea {
             width: 100%;
@@ -228,7 +240,46 @@
 
             @foreach (var post in Model.CenterPosts.OrderByDescending(p => p.CreatedAt))
             {
-                @await Html.PartialAsync("_CommunityPost", post)
+                <div class="post-card">
+                    <div class="post-header">
+                        <h3>@post.Title</h3>
+                        <div class="post-meta">
+                            <span>@post.AuthorDisplayName</span>
+                            <span>•</span>
+                            <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                        </div>
+                    </div>
+
+                    <div class="post-content">@post.Content</div>
+
+                    @if (post.Comments.Any())
+                    {
+                        <div class="comments-section">
+                            <h4>Kommentarer</h4>
+
+                            @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                            {
+                                <div class="comment-card">
+                                    <div class="comment-header">
+                                        <strong>@comment.AuthorDisplayName</strong>
+                                        <span>@comment.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                                    </div>
+                                    <div class="comment-content">@comment.Content</div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <form method="post" asp-page-handler="AddComment">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" name="PostId" value="@post.Id" />
+
+                        <textarea name="NewComment.Content" placeholder="Skriv en kommentar..." required></textarea>
+
+                        <button type="submit">Kommentér</button>
+                    </form>
+                </div>
             }
         </section>
 
@@ -242,7 +293,46 @@
 
             @foreach (var post in Model.GlobalPosts.OrderByDescending(p => p.CreatedAt))
             {
-                @await Html.PartialAsync("_CommunityPost", post)
+                <div class="post-card">
+                    <div class="post-header">
+                        <h3>@post.Title</h3>
+                        <div class="post-meta">
+                            <span>@post.AuthorDisplayName</span>
+                            <span>•</span>
+                            <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                        </div>
+                    </div>
+
+                    <div class="post-content">@post.Content</div>
+
+                    @if (post.Comments.Any())
+                    {
+                        <div class="comments-section">
+                            <h4>Kommentarer</h4>
+
+                            @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                            {
+                                <div class="comment-card">
+                                    <div class="comment-header">
+                                        <strong>@comment.AuthorDisplayName</strong>
+                                        <span>@comment.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                                    </div>
+                                    <div class="comment-content">@comment.Content</div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <form method="post" asp-page-handler="AddComment">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" name="PostId" value="@post.Id" />
+
+                        <textarea name="NewComment.Content" placeholder="Skriv en kommentar..." required></textarea>
+
+                        <button type="submit">Kommentér</button>
+                    </form>
+                </div>
             }
         </section>
     </main>
