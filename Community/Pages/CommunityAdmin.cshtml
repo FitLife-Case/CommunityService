@@ -1,0 +1,58 @@
+﻿@page "/CommunityAdmin"
+@model Community.Pages.CommunityAdminModel
+
+@{
+    ViewData["Title"] = "Community Admin";
+}
+
+<div class="community-container">
+    <div class="hero">
+        <h1>Community Admin</h1>
+        <p>Opret globalt opslag, center opslag og slet opslag</p>
+    </div>
+
+    <div class="card">
+        <h2>Opret opslag</h2>
+
+        <form method="post" action="/CommunityAdmin?handler=CreatePost">
+            @Html.AntiForgeryToken()
+
+            <select name="SelectedScope">
+                <option value="Global">Global</option>
+                <option value="Center">Center</option>
+            </select>
+
+            <input type="text" name="CenterId" placeholder="CenterId hvis Center opslag" />
+
+            <input type="text" name="NewPost.Title" placeholder="Titel" />
+
+            <textarea name="NewPost.Content" placeholder="Skriv opslag..."></textarea>
+
+            <button type="submit">Publicér</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Globale opslag</h2>
+    </div>
+
+    @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
+    {
+        <div class="post">
+            <div class="post-title">@post.Title</div>
+            <div class="post-meta">
+                Posted by @post.AuthorDisplayName · @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+            </div>
+
+            <div class="post-content">@post.Content</div>
+
+            <form method="post" action="/CommunityAdmin?handler=DeletePost">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="PostId" value="@post.Id" />
+
+                <button type="submit" class="danger">Slet opslag</button>
+            </form>
+        </div>
+    }
+</div>

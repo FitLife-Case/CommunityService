@@ -27,9 +27,19 @@ public class CommunityRepository : ICommunityRepository
     public async Task<List<Post>> GetCenterPostsAsync(string centerId)
     {
         return await _posts
-            .Find(p => p.Scope == CommunityScope.Center && p.CenterId == centerId && !p.IsDeleted)
+            .Find(p =>
+                p.Scope == CommunityScope.Center &&
+                p.CenterId == centerId &&
+                !p.IsDeleted)
             .SortByDescending(p => p.CreatedAt)
             .ToListAsync();
+    }
+
+    public async Task<Post?> GetPostByIdAsync(string postId)
+    {
+        return await _posts
+            .Find(p => p.Id == postId && !p.IsDeleted)
+            .FirstOrDefaultAsync();
     }
 
     public async Task CreatePostAsync(Post post)
@@ -48,5 +58,16 @@ public class CommunityRepository : ICommunityRepository
             update);
 
         _logger.LogInformation("Comment {CommentId} added to post {PostId}", comment.Id, postId);
+    }
+
+    public async Task DeletePostAsync(string postId)
+    {
+        var update = Builders<Post>.Update.Set(p => p.IsDeleted, true);
+
+        await _posts.UpdateOneAsync(
+            p => p.Id == postId && !p.IsDeleted,
+            update);
+
+        _logger.LogInformation("Post {PostId} soft deleted", postId);
     }
 }

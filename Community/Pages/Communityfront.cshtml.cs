@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Community.Pages;
 
-[Authorize(Roles = "Member,Admin")]
+[Authorize(Roles = "Member")]
 public class CommunityfrontModel : PageModel
 {
     private readonly HttpClient _httpClient;
@@ -16,12 +16,8 @@ public class CommunityfrontModel : PageModel
 
     public List<Post> Posts { get; set; } = new();
 
-    public string FeedScope { get; set; } = "Center";
-    public string FeedCenterId { get; set; } = string.Empty;
     public string CenterDisplayText { get; set; } = "Dit center";
-
-    [BindProperty]
-    public CreatePostRequest NewPost { get; set; } = new();
+    public bool MemberDataFound { get; set; } = false;
 
     [BindProperty]
     public string PostId { get; set; } = string.Empty;
@@ -42,43 +38,6 @@ public class CommunityfrontModel : PageModel
     public async Task OnGetAsync()
     {
         await LoadPostsAsync();
-    }
-
-    public async Task<IActionResult> OnPostCreatePostAsync()
-    {
-        var gateway = _configuration["GatewayUrl"] ?? "http://haav-gateway";
-
-        try
-        {
-            AddJwtTokenToRequest();
-
-            var member = await GetCurrentMemberAsync();
-
-            if (member == null)
-            {
-                _logger.LogWarning("Could not resolve current member when creating post");
-                return Unauthorized();
-            }
-
-            FeedCenterId = member.HomeCenterId.ToString();
-            CenterDisplayText = $"Center {FeedCenterId}";
-
-            var endpoint = $"{gateway}/api/community/centers/{FeedCenterId}/posts";
-
-            var response = await _httpClient.PostAsJsonAsync(endpoint, NewPost);
-
-            if (response.IsSuccessStatusCode)
-                return Redirect("/Community");
-
-            _logger.LogWarning("Failed creating post. Status code: {StatusCode}", response.StatusCode);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating post");
-        }
-
-        await LoadPostsAsync();
-        return Page();
     }
 
     public async Task<IActionResult> OnPostAddCommentAsync()
@@ -119,24 +78,27 @@ public class CommunityfrontModel : PageModel
 
             if (member == null)
             {
-                Posts = new();
+                MemberDataFound = false;
+                CenterDisplayText = "Dit center er ikke koblet endnu";
+
+                var globalResponse = await _httpClient.GetAsync($"{gateway}/api/community/global/posts");
+
+                Posts = globalResponse.IsSuccessStatusCode
+                    ? await globalResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
+                    : new();
+
                 return;
             }
 
-            FeedCenterId = member.HomeCenterId.ToString();
-            CenterDisplayText = $"Center {FeedCenterId}";
+            MemberDataFound = true;
+            CenterDisplayText = $"Center {member.HomeCenterId}";
 
-            var endpoint = $"{gateway}/api/community/centers/{FeedCenterId}/posts";
+            var response = await _httpClient.GetAsync(
+                $"{gateway}/api/community/centers/{member.HomeCenterId}/posts");
 
-            var response = await _httpClient.GetAsync(endpoint);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Posts = new();
-                return;
-            }
-
-            Posts = await response.Content.ReadFromJsonAsync<List<Post>>() ?? new();
+            Posts = response.IsSuccessStatusCode
+                ? await response.Content.ReadFromJsonAsync<List<Post>>() ?? new()
+                : new();
         }
         catch (Exception ex)
         {
@@ -147,11 +109,11 @@ public class CommunityfrontModel : PageModel
 
     private async Task<MemberDto?> GetCurrentMemberAsync()
     {
-        var memberId = GetCurrentMemberId();
+        var userAccountId = GetCurrentUserAccountId();
 
-        if (string.IsNullOrWhiteSpace(memberId))
+        if (string.IsNullOrWhiteSpace(userAccountId))
         {
-            _logger.LogWarning("No memberId found in JWT/cookies");
+            _logger.LogWarning("No user/member id found in JWT/cookies");
             return null;
         }
 
@@ -160,23 +122,20 @@ public class CommunityfrontModel : PageModel
             var client = new HttpClient();
 
             return await client.GetFromJsonAsync<MemberDto>(
-                $"http://haav-member-service:8080/api/Members/{memberId}");
+                $"http://haav-member-service:8080/api/Members/by-user/{userAccountId}");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not get member {MemberId} from MemberService", memberId);
+            _logger.LogWarning(ex, "Could not get member by user account {UserAccountId} from MemberService", userAccountId);
             return null;
         }
     }
 
-    private string? GetCurrentMemberId()
+    private string? GetCurrentUserAccountId()
     {
         return Request.Cookies["memberId"]
             ?? User.FindFirst("memberId")?.Value
-            ?? User.FindFirst("MemberId")?.Value
-            ?? User.FindFirst("member_id")?.Value
             ?? User.FindFirst("profileId")?.Value
-            ?? User.FindFirst("ProfileId")?.Value
             ?? User.FindFirst("sub")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
@@ -190,13 +149,10 @@ public class CommunityfrontModel : PageModel
 
         _httpClient.DefaultRequestHeaders.Authorization = null;
 
-        if (string.IsNullOrWhiteSpace(token))
+        if (!string.IsNullOrWhiteSpace(token))
         {
-            _logger.LogWarning("JWT cookie was missing");
-            return;
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
         }
-
-        _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", token);
     }
 }

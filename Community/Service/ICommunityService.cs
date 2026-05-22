@@ -21,4 +21,6 @@ public interface ICommunityService
         string postId,
         string authorDisplayName,
         CreateCommentRequest request);
+
+    Task DeletePostAsync(string postId);
 }
