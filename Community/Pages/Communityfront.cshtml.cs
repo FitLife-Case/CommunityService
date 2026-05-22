@@ -14,7 +14,8 @@ public class CommunityfrontModel : PageModel
     private readonly ILogger<CommunityfrontModel> _logger;
     private readonly IConfiguration _configuration;
 
-    public List<Post> Posts { get; set; } = new();
+    public List<Post> CenterPosts { get; set; } = new();
+    public List<Post> GlobalPosts { get; set; } = new();
 
     public string CenterDisplayText { get; set; } = "Dit center";
     public bool MemberDataFound { get; set; }
@@ -42,7 +43,7 @@ public class CommunityfrontModel : PageModel
 
     public async Task<IActionResult> OnPostAddCommentAsync()
     {
-        var gateway = _configuration["GatewayUrl"] ?? "http://haav-gateway";
+        var gateway = GetGatewayUrl();
 
         try
         {
@@ -70,26 +71,26 @@ public class CommunityfrontModel : PageModel
 
     private async Task LoadPostsAsync()
     {
-        var gateway = _configuration["GatewayUrl"] ?? "http://haav-gateway";
+        var gateway = GetGatewayUrl();
 
         try
         {
             AddJwtTokenToRequest();
 
+            var globalResponse = await _httpClient.GetAsync(
+                $"{gateway}/api/community/global/posts");
+
+            GlobalPosts = globalResponse.IsSuccessStatusCode
+                ? await globalResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
+                : new();
+
             var member = await GetCurrentMemberAsync();
 
-            if (member is null)
+            if (member is null || member.HomeCenterId == Guid.Empty)
             {
                 MemberDataFound = false;
                 CenterDisplayText = "Dit center er ikke koblet endnu";
-
-                var globalResponse = await _httpClient.GetAsync(
-                    $"{gateway}/api/community/global/posts");
-
-                Posts = globalResponse.IsSuccessStatusCode
-                    ? await globalResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
-                    : new();
-
+                CenterPosts = new();
                 return;
             }
 
@@ -97,9 +98,9 @@ public class CommunityfrontModel : PageModel
             CenterDisplayText = $"Center {member.HomeCenterId}";
 
             var centerResponse = await _httpClient.GetAsync(
-                $"{gateway}/api/community/centers/{member.HomeCenterId}/posts");
+                $"{gateway}/api/community/centers/{member.HomeCenterId.ToString()}/posts");
 
-            Posts = centerResponse.IsSuccessStatusCode
+            CenterPosts = centerResponse.IsSuccessStatusCode
                 ? await centerResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
                 : new();
         }
@@ -109,7 +110,8 @@ public class CommunityfrontModel : PageModel
 
             MemberDataFound = false;
             CenterDisplayText = "Dit center er ikke koblet endnu";
-            Posts = new();
+            CenterPosts = new();
+            GlobalPosts = new();
         }
     }
 
@@ -148,6 +150,13 @@ public class CommunityfrontModel : PageModel
             ?? User.FindFirst("profileId")?.Value
             ?? User.FindFirst("sub")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private string GetGatewayUrl()
+    {
+        return _configuration["GatewayUrl"]
+            ?? _configuration["GATEWAY_URL"]
+            ?? "http://haav-gateway";
     }
 
     private void AddJwtTokenToRequest()
