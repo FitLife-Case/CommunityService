@@ -60,7 +60,9 @@ public class CommunityAdminModel : PageModel
             if (response.IsSuccessStatusCode)
                 return Redirect("/CommunityAdmin");
 
-            _logger.LogWarning("Admin failed creating post. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogWarning(
+                "Admin failed creating post. Status code: {StatusCode}",
+                response.StatusCode);
         }
         catch (Exception ex)
         {
@@ -85,7 +87,9 @@ public class CommunityAdminModel : PageModel
             if (response.IsSuccessStatusCode)
                 return Redirect("/CommunityAdmin");
 
-            _logger.LogWarning("Admin failed deleting post. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogWarning(
+                "Admin failed deleting post. Status code: {StatusCode}",
+                response.StatusCode);
         }
         catch (Exception ex)
         {
@@ -102,7 +106,8 @@ public class CommunityAdminModel : PageModel
 
         try
         {
-            var response = await _httpClient.GetAsync($"{gateway}/api/community/global/posts");
+            var response = await _httpClient.GetAsync(
+                $"{gateway}/api/community/global/posts");
 
             Posts = response.IsSuccessStatusCode
                 ? await response.Content.ReadFromJsonAsync<List<Post>>() ?? new()
