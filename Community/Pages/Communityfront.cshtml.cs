@@ -17,7 +17,7 @@ public class CommunityfrontModel : PageModel
     public List<Post> Posts { get; set; } = new();
 
     public string CenterDisplayText { get; set; } = "Dit center";
-    public bool MemberDataFound { get; set; } = false;
+    public bool MemberDataFound { get; set; }
 
     [BindProperty]
     public string PostId { get; set; } = string.Empty;
@@ -55,7 +55,9 @@ public class CommunityfrontModel : PageModel
             if (response.IsSuccessStatusCode)
                 return Redirect("/Community");
 
-            _logger.LogWarning("Failed creating comment. Status code: {StatusCode}", response.StatusCode);
+            _logger.LogWarning(
+                "Failed creating comment. Status code: {StatusCode}",
+                response.StatusCode);
         }
         catch (Exception ex)
         {
@@ -76,12 +78,13 @@ public class CommunityfrontModel : PageModel
 
             var member = await GetCurrentMemberAsync();
 
-            if (member == null)
+            if (member is null)
             {
                 MemberDataFound = false;
                 CenterDisplayText = "Dit center er ikke koblet endnu";
 
-                var globalResponse = await _httpClient.GetAsync($"{gateway}/api/community/global/posts");
+                var globalResponse = await _httpClient.GetAsync(
+                    $"{gateway}/api/community/global/posts");
 
                 Posts = globalResponse.IsSuccessStatusCode
                     ? await globalResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
@@ -93,16 +96,19 @@ public class CommunityfrontModel : PageModel
             MemberDataFound = true;
             CenterDisplayText = $"Center {member.HomeCenterId}";
 
-            var response = await _httpClient.GetAsync(
+            var centerResponse = await _httpClient.GetAsync(
                 $"{gateway}/api/community/centers/{member.HomeCenterId}/posts");
 
-            Posts = response.IsSuccessStatusCode
-                ? await response.Content.ReadFromJsonAsync<List<Post>>() ?? new()
+            Posts = centerResponse.IsSuccessStatusCode
+                ? await centerResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
                 : new();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading community posts");
+
+            MemberDataFound = false;
+            CenterDisplayText = "Dit center er ikke koblet endnu";
             Posts = new();
         }
     }
@@ -119,14 +125,18 @@ public class CommunityfrontModel : PageModel
 
         try
         {
-            var client = new HttpClient();
+            AddJwtTokenToRequest();
 
-            return await client.GetFromJsonAsync<MemberDto>(
+            return await _httpClient.GetFromJsonAsync<MemberDto>(
                 $"http://haav-member-service:8080/api/Members/by-user/{userAccountId}");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not get member by user account {UserAccountId} from MemberService", userAccountId);
+            _logger.LogWarning(
+                ex,
+                "Could not get member by user account {UserAccountId} from MemberService",
+                userAccountId);
+
             return null;
         }
     }

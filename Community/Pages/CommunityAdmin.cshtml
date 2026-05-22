@@ -14,19 +14,19 @@
     <div class="card">
         <h2>Opret opslag</h2>
 
-        <form method="post" action="/CommunityAdmin?handler=CreatePost">
+        <form method="post" asp-page-handler="CreatePost">
             @Html.AntiForgeryToken()
 
-            <select name="SelectedScope">
+            <select asp-for="SelectedScope">
                 <option value="Global">Global</option>
                 <option value="Center">Center</option>
             </select>
 
-            <input type="text" name="CenterId" placeholder="CenterId hvis Center opslag" />
+            <input asp-for="CenterId" placeholder="CenterId hvis Center opslag" />
 
-            <input type="text" name="NewPost.Title" placeholder="Titel" />
+            <input asp-for="NewPost.Title" placeholder="Titel" />
 
-            <textarea name="NewPost.Content" placeholder="Skriv opslag..."></textarea>
+            <textarea asp-for="NewPost.Content" placeholder="Skriv opslag..."></textarea>
 
             <button type="submit">Publicér</button>
         </form>
@@ -36,20 +36,28 @@
         <h2>Globale opslag</h2>
     </div>
 
+    @if (!Model.Posts.Any())
+    {
+        <div class="card">
+            <p>Der er ingen globale opslag endnu.</p>
+        </div>
+    }
+
     @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
     {
         <div class="post">
             <div class="post-title">@post.Title</div>
+
             <div class="post-meta">
                 Posted by @post.AuthorDisplayName · @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
             </div>
 
             <div class="post-content">@post.Content</div>
 
-            <form method="post" action="/CommunityAdmin?handler=DeletePost">
+            <form method="post" asp-page-handler="DeletePost">
                 @Html.AntiForgeryToken()
 
-                <input type="hidden" name="PostId" value="@post.Id" />
+                <input type="hidden" asp-for="PostId" value="@post.Id" />
 
                 <button type="submit" class="danger">Slet opslag</button>
             </form>
