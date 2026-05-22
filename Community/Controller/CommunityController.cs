@@ -38,125 +38,60 @@ public class CommunityController : ControllerBase
         return Ok(posts);
     }
 
-    [Authorize(Roles = "Member,Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpPost("global/posts")]
     public async Task<ActionResult> CreateGlobalPost(CreatePostRequest request)
     {
-        var memberId = GetCurrentMemberId();
-
-        if (string.IsNullOrWhiteSpace(memberId))
-            return Unauthorized("No member id found in JWT claims.");
-
-        request.AuthorMemberId = memberId;
-
-        var authorName = await GetAuthorNameAsync(memberId);
+        var authorName = GetUsernameFallback();
+        request.AuthorMemberId = GetCurrentUserId() ?? "admin";
 
         await _communityService.CreateGlobalPostAsync(authorName, request);
-
-        _logger.LogInformation(
-            "Global post created by member {MemberId} as {AuthorName}",
-            memberId,
-            authorName);
-
         return Created();
     }
 
-    [Authorize(Roles = "Member,Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpPost("centers/{centerId}/posts")]
-    public async Task<ActionResult> CreateCenterPost(
-        string centerId,
-        CreatePostRequest request)
+    public async Task<ActionResult> CreateCenterPost(string centerId, CreatePostRequest request)
     {
-        var memberId = GetCurrentMemberId();
+        var authorName = GetUsernameFallback();
+        request.AuthorMemberId = GetCurrentUserId() ?? "admin";
 
-        if (string.IsNullOrWhiteSpace(memberId))
-            return Unauthorized("No member id found in JWT claims.");
-
-        request.AuthorMemberId = memberId;
-
-        var authorName = await GetAuthorNameAsync(memberId);
-
-        await _communityService.CreateCenterPostAsync(
-            authorName,
-            centerId,
-            request);
-
-        _logger.LogInformation(
-            "Center post created by member {MemberId} as {AuthorName} for center {CenterId}",
-            memberId,
-            authorName,
-            centerId);
-
+        await _communityService.CreateCenterPostAsync(authorName, centerId, request);
         return Created();
     }
 
     [Authorize(Roles = "Member,Admin")]
     [HttpPost("posts/{postId}/comments")]
-    public async Task<ActionResult> AddComment(
-        string postId,
-        CreateCommentRequest request)
+    public async Task<ActionResult> AddComment(string postId, CreateCommentRequest request)
     {
-        var memberId = GetCurrentMemberId();
+        var userId = GetCurrentUserId();
 
-        if (string.IsNullOrWhiteSpace(memberId))
-            return Unauthorized("No member id found in JWT claims.");
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized("No user id found.");
 
-        request.AuthorMemberId = memberId;
+        request.AuthorMemberId = userId;
 
-        var authorName = await GetAuthorNameAsync(memberId);
+        var authorName = GetUsernameFallback();
 
-        await _communityService.AddCommentAsync(
-            postId,
-            authorName,
-            request);
-
-        _logger.LogInformation(
-            "Comment added to post {PostId} by member {MemberId} as {AuthorName}",
-            postId,
-            memberId,
-            authorName);
-
+        await _communityService.AddCommentAsync(postId, authorName, request);
         return Ok();
     }
 
-    private string? GetCurrentMemberId()
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("posts/{postId}")]
+    public async Task<ActionResult> DeletePost(string postId)
+    {
+        await _communityService.DeletePostAsync(postId);
+        return NoContent();
+    }
+
+    private string? GetCurrentUserId()
     {
         return Request.Cookies["memberId"]
             ?? User.FindFirst("memberId")?.Value
-            ?? User.FindFirst("MemberId")?.Value
-            ?? User.FindFirst("member_id")?.Value
             ?? User.FindFirst("profileId")?.Value
-            ?? User.FindFirst("ProfileId")?.Value
             ?? User.FindFirst("sub")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    }
-
-    private async Task<string> GetAuthorNameAsync(string memberId)
-    {
-        if (string.IsNullOrWhiteSpace(memberId))
-            return GetUsernameFallback();
-
-        try
-        {
-            var client = _httpClientFactory.CreateClient();
-
-            var member = await client.GetFromJsonAsync<MemberDto>(
-                $"http://haav-member-service:8080/api/Members/{memberId}");
-
-            if (member == null)
-                return GetUsernameFallback();
-
-            var fullName = $"{member.FirstName} {member.LastName}".Trim();
-
-            return string.IsNullOrWhiteSpace(fullName)
-                ? GetUsernameFallback()
-                : fullName;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not get member {MemberId} from MemberService", memberId);
-            return GetUsernameFallback();
-        }
     }
 
     private string GetUsernameFallback()

@@ -65,7 +65,7 @@ public class CommunityService : ICommunityService
 
         var post = new Post
         {
-            AuthorUserId = authorDisplayName,
+            AuthorUserId = request.AuthorMemberId,
             AuthorMemberId = request.AuthorMemberId,
             AuthorDisplayName = authorDisplayName,
             Scope = CommunityScope.Global,
@@ -94,7 +94,7 @@ public class CommunityService : ICommunityService
 
         var post = new Post
         {
-            AuthorUserId = authorDisplayName,
+            AuthorUserId = request.AuthorMemberId,
             AuthorMemberId = request.AuthorMemberId,
             AuthorDisplayName = authorDisplayName,
             CenterId = centerId,
@@ -126,9 +126,16 @@ public class CommunityService : ICommunityService
             throw new ArgumentException("Comment content is required");
         }
 
+        var post = await _repository.GetPostByIdAsync(postId);
+
+        if (post is null)
+        {
+            throw new ArgumentException("Post was not found");
+        }
+
         var comment = new Comment
         {
-            AuthorUserId = authorDisplayName,
+            AuthorUserId = request.AuthorMemberId,
             AuthorMemberId = request.AuthorMemberId,
             AuthorDisplayName = authorDisplayName,
             Content = request.Content.Trim()
@@ -136,13 +143,49 @@ public class CommunityService : ICommunityService
 
         await _repository.AddCommentAsync(postId, comment);
 
-        _cache.Remove(GlobalPostsCacheKey);
+        RemovePostCache(post);
 
         _logger.LogInformation(
             "Comment added to post {PostId} by member {AuthorMemberId} as {AuthorDisplayName}",
             postId,
             request.AuthorMemberId,
             authorDisplayName);
+    }
+
+    public async Task DeletePostAsync(string postId)
+    {
+        if (string.IsNullOrWhiteSpace(postId))
+        {
+            throw new ArgumentException("PostId is required");
+        }
+
+        var post = await _repository.GetPostByIdAsync(postId);
+
+        if (post is null)
+        {
+            throw new ArgumentException("Post was not found");
+        }
+
+        await _repository.DeletePostAsync(postId);
+
+        RemovePostCache(post);
+
+        _logger.LogInformation("Post {PostId} deleted by admin", postId);
+    }
+
+    private void RemovePostCache(Post post)
+    {
+        if (post.Scope == CommunityScope.Global)
+        {
+            _cache.Remove(GlobalPostsCacheKey);
+            return;
+        }
+
+        if (post.Scope == CommunityScope.Center &&
+            !string.IsNullOrWhiteSpace(post.CenterId))
+        {
+            _cache.Remove(GetCenterPostsCacheKey(post.CenterId));
+        }
     }
 
     private static string GetCenterPostsCacheKey(string centerId)
