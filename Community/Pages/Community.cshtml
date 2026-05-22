@@ -8,15 +8,7 @@
 <div class="community-container">
     <div class="hero">
         <h1>Community</h1>
-
-        @if (Model.MemberDataFound)
-        {
-            <p>@Model.CenterDisplayText</p>
-        }
-        else
-        {
-            <p>Dit center er ikke koblet endnu</p>
-        }
+        <p>@Model.CenterDisplayText</p>
     </div>
 
     @if (!Model.Posts.Any())
