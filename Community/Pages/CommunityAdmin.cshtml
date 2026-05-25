@@ -194,6 +194,8 @@
 
             <form method="post" action="/CommunityAdmin?handler=CreatePost">
 
+                @Html.AntiForgeryToken()
+
                 <select name="SelectedScope">
                     <option value="Global">Globalt opslag</option>
                     <option value="Center">Center opslag</option>
@@ -249,6 +251,8 @@
 
                 <form method="post"
                       action="/CommunityAdmin?handler=DeletePost">
+
+                    @Html.AntiForgeryToken()
 
                     <input type="hidden"
                            name="PostId"
