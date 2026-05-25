@@ -168,11 +168,20 @@ public class CommunityfrontModel : PageModel
             ?? Request.Cookies["access_token"];
 
         _httpClient.DefaultRequestHeaders.Authorization = null;
+        _httpClient.DefaultRequestHeaders.Remove("Cookie");
 
         if (!string.IsNullOrWhiteSpace(token))
         {
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var cookies = string.Join("; ",
+            Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+
+        if (!string.IsNullOrWhiteSpace(cookies))
+        {
+            _httpClient.DefaultRequestHeaders.Add("Cookie", cookies);
         }
     }
 }
