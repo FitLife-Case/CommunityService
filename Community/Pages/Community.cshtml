@@ -1,15 +1,15 @@
-﻿@page "/CommunityAdmin"
-@model Community.Pages.CommunityAdminModel
+﻿@page "/Community"
+@model Community.Pages.CommunityfrontModel
 
 @{
-    ViewData["Title"] = "Community Admin";
+    ViewData["Title"] = "Community";
 }
 
 <!DOCTYPE html>
 <html lang="da">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Admin</title>
+    <title>Community</title>
 
     <style>
         * {
@@ -50,8 +50,7 @@
             margin: 0 auto;
         }
 
-        .card,
-        .post-card {
+        .card, .post-card {
             background: rgba(255,255,255,.78);
             backdrop-filter: blur(14px);
             border: 1px solid rgba(255,255,255,.8);
@@ -66,42 +65,26 @@
             font-size: 20px;
         }
 
-        input,
-        textarea,
-        select {
+        input {
             width: 100%;
             border: 1px solid rgba(107,53,217,.18);
             border-radius: 16px;
             padding: 12px;
             font-family: inherit;
-            margin-bottom: 12px;
+            margin-top: 12px;
             background: rgba(255,255,255,.82);
             outline: none;
         }
 
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
         button {
+            margin-top: 10px;
             border: none;
             border-radius: 999px;
-            padding: 12px 18px;
+            padding: 10px 16px;
             background: linear-gradient(135deg, #6B35D9, #9B72F0);
             color: white;
             font-weight: 700;
             cursor: pointer;
-        }
-
-        .danger {
-            background: linear-gradient(135deg, #d93434, #ff5a5a);
         }
 
         .post-header h3 {
@@ -121,16 +104,7 @@
         .post-content {
             font-size: 15px;
             line-height: 1.45;
-            margin-bottom: 16px;
-        }
-
-        .status {
-            background: rgba(255,255,255,.7);
-            border-radius: 16px;
-            padding: 14px;
-            margin-bottom: 16px;
-            color: #6B35D9;
-            font-weight: 600;
+            margin-bottom: 12px;
         }
 
         .bottom-nav {
@@ -177,56 +151,20 @@
 
 <body>
     <div class="hero">
-        <h1>Community Admin</h1>
-        <p>Administrér opslag og feeds</p>
+        <h1>Community</h1>
+        <p>Se opslag fra dit center og globale nyheder</p>
     </div>
 
     <main class="content">
-        @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
-        {
-            <div class="status">
-                @Model.StatusMessage
-            </div>
-        }
-
         <div class="card">
-            <h2>Opret opslag</h2>
-
-            <form method="post" asp-page="/CommunityAdmin" asp-page-handler="CreatePost">
-                @Html.AntiForgeryToken()
-
-                <select asp-for="SelectedScope">
-                    <option value="Global">Globalt opslag</option>
-                    <option value="Center">Center opslag</option>
-                </select>
-
-                <input asp-for="CenterId" placeholder="CenterId hvis center opslag" />
-
-                <input asp-for="NewPost.Title" placeholder="Titel" />
-
-                <textarea asp-for="NewPost.Content" placeholder="Skriv opslag..."></textarea>
-
-                <div class="btn-row">
-                    <button type="submit">
-                        Publicér opslag
-                    </button>
-                </div>
-            </form>
+            <h2>Globale opslag</h2>
         </div>
 
-        @if (!Model.Posts.Any())
-        {
-            <div class="card">
-                <p>Ingen opslag endnu.</p>
-            </div>
-        }
-
-        @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
+        @foreach (var post in Model.GlobalPosts.OrderByDescending(p => p.CreatedAt))
         {
             <div class="post-card">
                 <div class="post-header">
                     <h3>@post.Title</h3>
-
                     <div class="post-meta">
                         <span>@post.AuthorDisplayName</span>
                         <span>•</span>
@@ -238,32 +176,43 @@
                     @post.Content
                 </div>
 
-                <form method="post" asp-page="/CommunityAdmin" asp-page-handler="DeletePost">
-                    @Html.AntiForgeryToken()
-
+                <form method="post" action="/Community?handler=AddComment">
                     <input type="hidden" name="PostId" value="@post.Id" />
-
-                    <button type="submit" class="danger">
-                        Slet opslag
-                    </button>
+                    <input name="NewComment.Content" placeholder="Skriv kommentar..." />
+                    <button type="submit">Kommentér</button>
                 </form>
+            </div>
+        }
+
+        <div class="card">
+            <h2>@Model.CenterDisplayText</h2>
+        </div>
+
+        @foreach (var post in Model.CenterPosts.OrderByDescending(p => p.CreatedAt))
+        {
+            <div class="post-card">
+                <div class="post-header">
+                    <h3>@post.Title</h3>
+                    <div class="post-meta">
+                        <span>@post.AuthorDisplayName</span>
+                        <span>•</span>
+                        <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                    </div>
+                </div>
+
+                <div class="post-content">
+                    @post.Content
+                </div>
             </div>
         }
     </main>
 
     <nav class="bottom-nav">
-        <a href="/Admin" class="nav-item">
-            <svg viewBox="0 0 24 24">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            </svg>
-            Hjem
-        </a>
-
-        <a href="/CommunityAdmin" class="nav-item active">
+        <a href="/Community" class="nav-item active">
             <svg viewBox="0 0 24 24">
                 <path d="M12 1l3 6 6 .9-4.5 4.4 1.1 6.2L12 16l-5.6 2.5 1.1-6.2L3 7.9 9 7z" />
             </svg>
-            Admin
+            Community
         </a>
     </nav>
 </body>
