@@ -76,6 +76,7 @@ public class CommunityAdminModel : PageModel
 
             NewPost.Title = NewPost.Title.Trim();
             NewPost.Content = NewPost.Content.Trim();
+            NewPost.AuthorMemberId = GetAdminAuthorId();
 
             var endpoint =
                 SelectedScope == "Center"
@@ -172,6 +173,15 @@ public class CommunityAdminModel : PageModel
             _logger.LogError(ex, "Error loading admin community posts");
             Posts = new();
         }
+    }
+
+    private string GetAdminAuthorId()
+    {
+        return Request.Cookies["memberId"]
+            ?? User.FindFirst("memberId")?.Value
+            ?? Request.Cookies["username"]
+            ?? User.Identity?.Name
+            ?? "admin";
     }
 
     private string GetGatewayUrl()
