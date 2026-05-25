@@ -8,10 +8,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Community.Pages;
 
 [Authorize(Roles = "Member")]
-public class CommunityfrontModel : PageModel
+public class CommunityModel : PageModel
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<CommunityfrontModel> _logger;
+    private readonly ILogger<CommunityModel> _logger;
     private readonly IConfiguration _configuration;
 
     public List<Post> CenterPosts { get; set; } = new();
@@ -26,9 +26,9 @@ public class CommunityfrontModel : PageModel
     [BindProperty]
     public CreateCommentRequest NewComment { get; set; } = new();
 
-    public CommunityfrontModel(
+    public CommunityModel(
         IHttpClientFactory httpClientFactory,
-        ILogger<CommunityfrontModel> logger,
+        ILogger<CommunityModel> logger,
         IConfiguration configuration)
     {
         _httpClient = httpClientFactory.CreateClient();
@@ -55,10 +55,6 @@ public class CommunityfrontModel : PageModel
 
             if (response.IsSuccessStatusCode)
                 return Redirect("/Community");
-
-            _logger.LogWarning(
-                "Failed creating comment. Status code: {StatusCode}",
-                response.StatusCode);
         }
         catch (Exception ex)
         {
@@ -110,7 +106,6 @@ public class CommunityfrontModel : PageModel
 
             MemberDataFound = false;
             CenterDisplayText = "Dit center er ikke koblet endnu";
-
             CenterPosts = new();
             GlobalPosts = new();
         }
@@ -121,10 +116,7 @@ public class CommunityfrontModel : PageModel
         var userAccountId = GetCurrentUserAccountId();
 
         if (string.IsNullOrWhiteSpace(userAccountId))
-        {
-            _logger.LogWarning("No user/member id found in JWT/cookies");
             return null;
-        }
 
         try
         {
@@ -133,13 +125,8 @@ public class CommunityfrontModel : PageModel
             return await _httpClient.GetFromJsonAsync<MemberDto>(
                 $"http://haav-member-service:8080/api/Members/by-user/{userAccountId}");
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogWarning(
-                ex,
-                "Could not get member by user account {UserAccountId} from MemberService",
-                userAccountId);
-
             return null;
         }
     }
