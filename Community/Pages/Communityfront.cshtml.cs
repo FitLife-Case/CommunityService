@@ -98,7 +98,7 @@ public class CommunityfrontModel : PageModel
             CenterDisplayText = $"Center {member.HomeCenterId}";
 
             var centerResponse = await _httpClient.GetAsync(
-                $"{gateway}/api/community/centers/{member.HomeCenterId.ToString()}/posts");
+                $"{gateway}/api/community/centers/{member.HomeCenterId}/posts");
 
             CenterPosts = centerResponse.IsSuccessStatusCode
                 ? await centerResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
@@ -110,6 +110,7 @@ public class CommunityfrontModel : PageModel
 
             MemberDataFound = false;
             CenterDisplayText = "Dit center er ikke koblet endnu";
+
             CenterPosts = new();
             GlobalPosts = new();
         }

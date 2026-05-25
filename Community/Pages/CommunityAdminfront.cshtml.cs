@@ -62,9 +62,10 @@ public class CommunityAdminModel : PageModel
             return Page();
         }
 
-        if (SelectedScope == "Center" && string.IsNullOrWhiteSpace(CenterId))
+        if (SelectedScope == "Center" &&
+            string.IsNullOrWhiteSpace(CenterId))
         {
-            StatusMessage = "CenterId mangler for center opslag.";
+            StatusMessage = "CenterId mangler.";
             await LoadPostsAsync();
             return Page();
         }
@@ -81,12 +82,16 @@ public class CommunityAdminModel : PageModel
                     ? $"{gateway}/api/community/centers/{CenterId.Trim()}/posts"
                     : $"{gateway}/api/community/global/posts";
 
-            var response = await _httpClient.PostAsJsonAsync(endpoint, NewPost);
+            var response = await _httpClient.PostAsJsonAsync(
+                endpoint,
+                NewPost);
 
             if (response.IsSuccessStatusCode)
                 return Redirect("/CommunityAdmin");
 
-            StatusMessage = $"Opslag kunne ikke oprettes. Status: {(int)response.StatusCode}";
+            StatusMessage =
+                $"Opslag kunne ikke oprettes. Status: {(int)response.StatusCode}";
+
             _logger.LogWarning(
                 "Admin failed creating post. Status code: {StatusCode}",
                 response.StatusCode);
@@ -122,7 +127,9 @@ public class CommunityAdminModel : PageModel
             if (response.IsSuccessStatusCode)
                 return Redirect("/CommunityAdmin");
 
-            StatusMessage = $"Opslag kunne ikke slettes. Status: {(int)response.StatusCode}";
+            StatusMessage =
+                $"Opslag kunne ikke slettes. Status: {(int)response.StatusCode}";
+
             _logger.LogWarning(
                 "Admin failed deleting post {PostId}. Status code: {StatusCode}",
                 PostId,
