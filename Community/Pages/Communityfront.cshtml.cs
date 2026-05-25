@@ -95,10 +95,11 @@ public class CommunityfrontModel : PageModel
             }
 
             MemberDataFound = true;
-            CenterDisplayText = $"Center {member.HomeCenterId}";
+            var centerId = member.HomeCenterId.ToString();
+            CenterDisplayText = GetCenterDisplayName(centerId);
 
             var centerResponse = await _httpClient.GetAsync(
-                $"{gateway}/api/community/centers/{member.HomeCenterId}/posts");
+                $"{gateway}/api/community/centers/{centerId}/posts");
 
             CenterPosts = centerResponse.IsSuccessStatusCode
                 ? await centerResponse.Content.ReadFromJsonAsync<List<Post>>() ?? new()
@@ -151,6 +152,19 @@ public class CommunityfrontModel : PageModel
             ?? User.FindFirst("profileId")?.Value
             ?? User.FindFirst("sub")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private string GetCenterDisplayName(string centerId)
+    {
+        return centerId switch
+        {
+            "11111111-1111-1111-1111-111111111111" => "FitLife Copenhagen",
+            "22222222-2222-2222-2222-222222222222" => "FitLife Aarhus",
+            "33333333-3333-3333-3333-333333333333" => "FitLife Odense",
+            "44444444-4444-4444-4444-444444444444" => "FitLife Aalborg",
+            "55555555-5555-5555-5555-555555555555" => "FitLife Esbjerg",
+            _ => $"Center {centerId}"
+        };
     }
 
     private string GetGatewayUrl()

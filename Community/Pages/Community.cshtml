@@ -177,6 +177,49 @@
 
     <main class="content">
         <div class="card">
+            <h2>@Model.CenterDisplayText</h2>
+        </div>
+
+        @foreach (var post in Model.CenterPosts.OrderByDescending(p => p.CreatedAt))
+        {
+            <div class="post-card">
+                <div class="post-header">
+                    <h3>@post.Title</h3>
+
+                    <div class="post-meta">
+                        <span>@post.AuthorDisplayName</span>
+                        <span>•</span>
+                        <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                    </div>
+                </div>
+
+                <div class="post-content">
+                    @post.Content
+                </div>
+
+                @if (post.Comments.Any())
+                {
+                    <div style="margin-top:16px;">
+                        @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                        {
+                            <div class="comment-box">
+                                <div class="comment-author">@comment.AuthorDisplayName</div>
+                                <div class="comment-content">@comment.Content</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <form method="post" action="/Community?handler=AddComment">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PostId" value="@post.Id" />
+                    <input name="NewComment.Content" placeholder="Skriv kommentar..." />
+                    <button type="submit">Kommentér</button>
+                </form>
+            </div>
+        }
+
+        <div class="card">
             <h2>Globale opslag</h2>
         </div>
 
@@ -203,13 +246,8 @@
                         @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
                         {
                             <div class="comment-box">
-                                <div class="comment-author">
-                                    @comment.AuthorDisplayName
-                                </div>
-
-                                <div class="comment-content">
-                                    @comment.Content
-                                </div>
+                                <div class="comment-author">@comment.AuthorDisplayName</div>
+                                <div class="comment-content">@comment.Content</div>
                             </div>
                         }
                     </div>
@@ -217,14 +255,9 @@
 
                 <form method="post" action="/Community?handler=AddComment">
                     @Html.AntiForgeryToken()
-
                     <input type="hidden" name="PostId" value="@post.Id" />
-
                     <input name="NewComment.Content" placeholder="Skriv kommentar..." />
-
-                    <button type="submit">
-                        Kommentér
-                    </button>
+                    <button type="submit">Kommentér</button>
                 </form>
             </div>
         }
