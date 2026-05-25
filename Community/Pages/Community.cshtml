@@ -108,6 +108,26 @@
             margin-bottom: 12px;
         }
 
+        .comment-box {
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 16px;
+            background: rgba(107,53,217,.08);
+            border: 1px solid rgba(107,53,217,.12);
+        }
+
+        .comment-author {
+            font-size: 12px;
+            color: #6B35D9;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .comment-content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
         .bottom-nav {
             position: fixed;
             bottom: 20px;
@@ -185,6 +205,28 @@
                     @post.Content
                 </div>
 
+                @if (post.Comments.Any())
+                {
+                    <div style="margin-top:16px;">
+
+                        @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                        {
+                            <div class="comment-box">
+
+                                <div class="comment-author">
+                                    @comment.AuthorDisplayName
+                                </div>
+
+                                <div class="comment-content">
+                                    @comment.Content
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
                 <form method="post"
                       action="/Community?handler=AddComment">
 
@@ -231,6 +273,28 @@
                 <div class="post-content">
                     @post.Content
                 </div>
+
+                @if (post.Comments.Any())
+                {
+                    <div style="margin-top:16px;">
+
+                        @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                        {
+                            <div class="comment-box">
+
+                                <div class="comment-author">
+                                    @comment.AuthorDisplayName
+                                </div>
+
+                                <div class="comment-content">
+                                    @comment.Content
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+                }
 
             </div>
         }
