@@ -173,12 +173,14 @@
 </head>
 
 <body>
+
     <div class="hero">
         <h1>Community Admin</h1>
         <p>Administrér opslag og feeds</p>
     </div>
 
     <main class="content">
+
         @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
         {
             <div class="status">
@@ -187,28 +189,33 @@
         }
 
         <div class="card">
+
             <h2>Opret opslag</h2>
 
             <form method="post" action="/CommunityAdmin?handler=CreatePost">
-                @Html.AntiForgeryToken()
 
-                <select asp-for="SelectedScope">
+                <select name="SelectedScope">
                     <option value="Global">Globalt opslag</option>
                     <option value="Center">Center opslag</option>
                 </select>
 
-                <input asp-for="CenterId" placeholder="CenterId hvis center opslag" />
+                <input name="CenterId"
+                       placeholder="CenterId hvis center opslag" />
 
-                <input asp-for="NewPost.Title" placeholder="Titel" />
+                <input name="NewPost.Title"
+                       placeholder="Titel" />
 
-                <textarea asp-for="NewPost.Content" placeholder="Skriv opslag..."></textarea>
+                <textarea name="NewPost.Content"
+                          placeholder="Skriv opslag..."></textarea>
 
                 <div class="btn-row">
                     <button type="submit">
                         Publicér opslag
                     </button>
                 </div>
+
             </form>
+
         </div>
 
         @if (!Model.Posts.Any())
@@ -221,47 +228,65 @@
         @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
         {
             <div class="post-card">
+
                 <div class="post-header">
+
                     <h3>@post.Title</h3>
 
                     <div class="post-meta">
                         <span>@post.AuthorDisplayName</span>
                         <span>•</span>
-                        <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                        <span>
+                            @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                        </span>
                     </div>
+
                 </div>
 
                 <div class="post-content">
                     @post.Content
                 </div>
 
-                <form method="post" action="/CommunityAdmin?handler=DeletePost">
-                    @Html.AntiForgeryToken()
+                <form method="post"
+                      action="/CommunityAdmin?handler=DeletePost">
 
-                    <input type="hidden" name="PostId" value="@post.Id" />
+                    <input type="hidden"
+                           name="PostId"
+                           value="@post.Id" />
 
-                    <button type="submit" class="danger">
+                    <button type="submit"
+                            class="danger">
                         Slet opslag
                     </button>
+
                 </form>
+
             </div>
         }
+
     </main>
 
     <nav class="bottom-nav">
+
         <a href="/Admin" class="nav-item">
+
             <svg viewBox="0 0 24 24">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             </svg>
+
             Hjem
         </a>
 
         <a href="/CommunityAdmin" class="nav-item active">
+
             <svg viewBox="0 0 24 24">
                 <path d="M12 1l3 6 6 .9-4.5 4.4 1.1 6.2L12 16l-5.6 2.5 1.1-6.2L3 7.9 9 7z" />
             </svg>
+
             Admin
         </a>
+
     </nav>
+
 </body>
 </html>
