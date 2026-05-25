@@ -50,7 +50,8 @@
             margin: 0 auto;
         }
 
-        .card, .post-card {
+        .card,
+        .post-card {
             background: rgba(255,255,255,.78);
             backdrop-filter: blur(14px);
             border: 1px solid rgba(255,255,255,.8);
@@ -150,12 +151,14 @@
 </head>
 
 <body>
+
     <div class="hero">
         <h1>Community</h1>
         <p>Se opslag fra dit center og globale nyheder</p>
     </div>
 
     <main class="content">
+
         <div class="card">
             <h2>Globale opslag</h2>
         </div>
@@ -163,24 +166,43 @@
         @foreach (var post in Model.GlobalPosts.OrderByDescending(p => p.CreatedAt))
         {
             <div class="post-card">
+
                 <div class="post-header">
+
                     <h3>@post.Title</h3>
+
                     <div class="post-meta">
                         <span>@post.AuthorDisplayName</span>
                         <span>•</span>
-                        <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                        <span>
+                            @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                        </span>
                     </div>
+
                 </div>
 
                 <div class="post-content">
                     @post.Content
                 </div>
 
-                <form method="post" action="/Community?handler=AddComment">
-                    <input type="hidden" name="PostId" value="@post.Id" />
-                    <input name="NewComment.Content" placeholder="Skriv kommentar..." />
-                    <button type="submit">Kommentér</button>
+                <form method="post"
+                      action="/Community?handler=AddComment">
+
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden"
+                           name="PostId"
+                           value="@post.Id" />
+
+                    <input name="NewComment.Content"
+                           placeholder="Skriv kommentar..." />
+
+                    <button type="submit">
+                        Kommentér
+                    </button>
+
                 </form>
+
             </div>
         }
 
@@ -191,29 +213,42 @@
         @foreach (var post in Model.CenterPosts.OrderByDescending(p => p.CreatedAt))
         {
             <div class="post-card">
+
                 <div class="post-header">
+
                     <h3>@post.Title</h3>
+
                     <div class="post-meta">
                         <span>@post.AuthorDisplayName</span>
                         <span>•</span>
-                        <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                        <span>
+                            @post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                        </span>
                     </div>
+
                 </div>
 
                 <div class="post-content">
                     @post.Content
                 </div>
+
             </div>
         }
+
     </main>
 
     <nav class="bottom-nav">
+
         <a href="/Community" class="nav-item active">
+
             <svg viewBox="0 0 24 24">
                 <path d="M12 1l3 6 6 .9-4.5 4.4 1.1 6.2L12 16l-5.6 2.5 1.1-6.2L3 7.9 9 7z" />
             </svg>
+
             Community
         </a>
+
     </nav>
+
 </body>
 </html>
