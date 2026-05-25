@@ -46,8 +46,6 @@ public class CommunityAdminModel : PageModel
 
     public async Task<IActionResult> OnPostCreatePostAsync()
     {
-        var gateway = GetGatewayUrl();
-
         if (string.IsNullOrWhiteSpace(NewPost.Title))
         {
             StatusMessage = "Titel mangler.";
@@ -62,13 +60,14 @@ public class CommunityAdminModel : PageModel
             return Page();
         }
 
-        if (SelectedScope == "Center" &&
-            string.IsNullOrWhiteSpace(CenterId))
+        if (SelectedScope == "Center" && string.IsNullOrWhiteSpace(CenterId))
         {
             StatusMessage = "CenterId mangler.";
             await LoadPostsAsync();
             return Page();
         }
+
+        var gateway = GetGatewayUrl();
 
         try
         {
@@ -76,21 +75,19 @@ public class CommunityAdminModel : PageModel
 
             NewPost.Title = NewPost.Title.Trim();
             NewPost.Content = NewPost.Content.Trim();
+            NewPost.AuthorMemberId = GetAdminAuthorId();
 
             var endpoint =
                 SelectedScope == "Center"
                     ? $"{gateway}/api/community/centers/{CenterId.Trim()}/posts"
                     : $"{gateway}/api/community/global/posts";
 
-            var response = await _httpClient.PostAsJsonAsync(
-                endpoint,
-                NewPost);
+            var response = await _httpClient.PostAsJsonAsync(endpoint, NewPost);
 
             if (response.IsSuccessStatusCode)
                 return Redirect("/CommunityAdmin");
 
-            StatusMessage =
-                $"Opslag kunne ikke oprettes. Status: {(int)response.StatusCode}";
+            StatusMessage = $"Opslag kunne ikke oprettes. Status: {(int)response.StatusCode}";
 
             _logger.LogWarning(
                 "Admin failed creating post. Status code: {StatusCode}",
@@ -108,14 +105,14 @@ public class CommunityAdminModel : PageModel
 
     public async Task<IActionResult> OnPostDeletePostAsync()
     {
-        var gateway = GetGatewayUrl();
-
         if (string.IsNullOrWhiteSpace(PostId))
         {
             StatusMessage = "PostId mangler.";
             await LoadPostsAsync();
             return Page();
         }
+
+        var gateway = GetGatewayUrl();
 
         try
         {
@@ -127,8 +124,7 @@ public class CommunityAdminModel : PageModel
             if (response.IsSuccessStatusCode)
                 return Redirect("/CommunityAdmin");
 
-            StatusMessage =
-                $"Opslag kunne ikke slettes. Status: {(int)response.StatusCode}";
+            StatusMessage = $"Opslag kunne ikke slettes. Status: {(int)response.StatusCode}";
 
             _logger.LogWarning(
                 "Admin failed deleting post {PostId}. Status code: {StatusCode}",
@@ -172,6 +168,14 @@ public class CommunityAdminModel : PageModel
             _logger.LogError(ex, "Error loading admin community posts");
             Posts = new();
         }
+    }
+
+    private string GetAdminAuthorId()
+    {
+        return Request.Cookies["memberId"]
+            ?? Request.Cookies["username"]
+            ?? User.Identity?.Name
+            ?? "Admin";
     }
 
     private string GetGatewayUrl()
