@@ -1,15 +1,15 @@
-﻿@page "/CommunityAdmin"
-@model Community.Pages.CommunityAdminModel
+﻿@page "/Community"
+@model Community.Pages.CommunityModel
 
 @{
-    ViewData["Title"] = "Community Admin";
+    ViewData["Title"] = "Community";
 }
 
 <!DOCTYPE html>
 <html lang="da">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Admin</title>
+    <title>Community</title>
 
     <style>
         * {
@@ -50,6 +50,27 @@
             margin: 0 auto;
         }
 
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .tab {
+            border: none;
+            border-radius: 999px;
+            padding: 14px;
+            background: rgba(255,255,255,.7);
+            color: #6B35D9;
+            font-weight: 700;
+        }
+
+            .tab.active {
+                background: linear-gradient(135deg, #6B35D9, #9B72F0);
+                color: white;
+            }
+
         .card,
         .post-card {
             background: rgba(255,255,255,.78);
@@ -59,49 +80,6 @@
             padding: 18px;
             margin-bottom: 16px;
             box-shadow: 0 8px 26px rgba(107,53,217,.10);
-        }
-
-        h2 {
-            margin-bottom: 14px;
-            font-size: 20px;
-        }
-
-        input,
-        textarea,
-        select {
-            width: 100%;
-            border: 1px solid rgba(107,53,217,.18);
-            border-radius: 16px;
-            padding: 12px;
-            font-family: inherit;
-            margin-bottom: 12px;
-            background: rgba(255,255,255,.82);
-            outline: none;
-        }
-
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            border: none;
-            border-radius: 999px;
-            padding: 12px 18px;
-            background: linear-gradient(135deg, #6B35D9, #9B72F0);
-            color: white;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .danger {
-            background: linear-gradient(135deg, #d93434, #ff5a5a);
         }
 
         .post-header h3 {
@@ -124,13 +102,35 @@
             margin-bottom: 16px;
         }
 
-        .status {
-            background: rgba(255,255,255,.7);
+        .comment-box {
+            margin-top: 12px;
+        }
+
+        textarea {
+            width: 100%;
+            border: 1px solid rgba(107,53,217,.18);
             border-radius: 16px;
-            padding: 14px;
-            margin-bottom: 16px;
-            color: #6B35D9;
-            font-weight: 600;
+            padding: 12px;
+            font-family: inherit;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,.82);
+            outline: none;
+            min-height: 90px;
+        }
+
+        button {
+            border: none;
+            border-radius: 999px;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #6B35D9, #9B72F0);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .empty {
+            color: #777;
+            font-size: 14px;
         }
 
         .bottom-nav {
@@ -177,51 +177,48 @@
 
 <body>
     <div class="hero">
-        <h1>Community Admin</h1>
-        <p>Administrér opslag og feeds</p>
+        <h1>Community</h1>
+        <p>@Model.CenterDisplayText</p>
     </div>
 
     <main class="content">
-        @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
-        {
-            <div class="status">
-                @Model.StatusMessage
-            </div>
-        }
+        <div class="tabs">
+            <button class="tab active">
+                Mit center
+            </button>
 
-        <div class="card">
-            <h2>Opret opslag</h2>
-
-            <form method="post" asp-page="/CommunityAdmin" asp-page-handler="CreatePost">
-                @Html.AntiForgeryToken()
-
-                <select asp-for="SelectedScope">
-                    <option value="Global">Globalt opslag</option>
-                    <option value="Center">Center opslag</option>
-                </select>
-
-                <input asp-for="CenterId" placeholder="CenterId hvis center opslag" />
-
-                <input asp-for="NewPost.Title" placeholder="Titel" />
-
-                <textarea asp-for="NewPost.Content" placeholder="Skriv opslag..."></textarea>
-
-                <div class="btn-row">
-                    <button type="submit">
-                        Publicér opslag
-                    </button>
-                </div>
-            </form>
+            <button class="tab">
+                Alle centre
+            </button>
         </div>
 
-        @if (!Model.Posts.Any())
+        @if (!Model.MemberDataFound)
         {
             <div class="card">
-                <p>Ingen opslag endnu.</p>
+                Dit center er ikke koblet endnu.
             </div>
         }
 
-        @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
+        @foreach (var post in Model.CenterPosts)
+        {
+            <div class="post-card">
+                <div class="post-header">
+                    <h3>@post.Title</h3>
+
+                    <div class="post-meta">
+                        <span>@post.AuthorDisplayName</span>
+                        <span>•</span>
+                        <span>@post.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                    </div>
+                </div>
+
+                <div class="post-content">
+                    @post.Content
+                </div>
+            </div>
+        }
+
+        @foreach (var post in Model.GlobalPosts)
         {
             <div class="post-card">
                 <div class="post-header">
@@ -238,32 +235,44 @@
                     @post.Content
                 </div>
 
-                <form method="post" asp-page="/CommunityAdmin" asp-page-handler="DeletePost">
-                    @Html.AntiForgeryToken()
+                <div class="comment-box">
+                    <form method="post" asp-page-handler="AddComment">
+                        @Html.AntiForgeryToken()
 
-                    <input type="hidden" name="PostId" value="@post.Id" />
+                        <input type="hidden" name="PostId" value="@post.Id" />
 
-                    <button type="submit" class="danger">
-                        Slet opslag
-                    </button>
-                </form>
+                        <textarea asp-for="NewComment.Content"
+                              placeholder="Skriv kommentar..."></textarea>
+
+                        <button type="submit">
+                            Kommentér
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (!Model.GlobalPosts.Any() && !Model.CenterPosts.Any())
+        {
+            <div class="card empty">
+                Ingen opslag endnu.
             </div>
         }
     </main>
 
     <nav class="bottom-nav">
-        <a href="/Admin" class="nav-item">
+        <a href="/Member" class="nav-item">
             <svg viewBox="0 0 24 24">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             </svg>
             Hjem
         </a>
 
-        <a href="/CommunityAdmin" class="nav-item active">
+        <a href="/Community" class="nav-item active">
             <svg viewBox="0 0 24 24">
-                <path d="M12 1l3 6 6 .9-4.5 4.4 1.1 6.2L12 16l-5.6 2.5 1.1-6.2L3 7.9 9 7z" />
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            Admin
+            Community
         </a>
     </nav>
 </body>
