@@ -133,7 +133,7 @@ public class CommunityfrontModel : PageModel
             var gateway = GetGatewayUrl();
 
             return await _httpClient.GetFromJsonAsync<MemberDto>(
-                $"{gateway}/api/members/by-user/{userAccountId}");
+              $"{gateway}/api/members/by-account/{userAccountId}");
         }
         catch (Exception ex)
         {
