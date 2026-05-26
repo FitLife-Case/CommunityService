@@ -16,14 +16,14 @@ public class CommunityAdminModel : PageModel
     public record CenterOption(string Id, string Name);
 
     public List<CenterOption> AvailableCenters { get; } = new()
-    {
-        new("11111111-1111-1111-1111-111111111111", "FitLife Copenhagen"),
-        new("22222222-2222-2222-2222-222222222222", "FitLife Aarhus"),
-        new("33333333-3333-3333-3333-333333333333", "FitLife Odense"),
-        new("44444444-4444-4444-4444-444444444444", "FitLife Aalborg"),
-        new("55555555-5555-5555-5555-555555555555", "FitLife Esbjerg")
-    };
-
+{
+    new("00000000-0000-0000-0000-000000000001", "FitLife Aarhus C"),
+    new("00000000-0000-0000-0000-000000000002", "FitLife Aarhus Nord"),
+    new("00000000-0000-0000-0000-000000000003", "FitLife Viby"),
+    new("00000000-0000-0000-0000-000000000004", "FitLife Randers"),
+    new("00000000-0000-0000-0000-000000000005", "FitLife Horsens"),
+    new("00000000-0000-0000-0000-000000000006", "FitLife Silkeborg"),
+};
     public List<Post> Posts { get; set; } = new();
 
     public string StatusMessage { get; set; } = string.Empty;
