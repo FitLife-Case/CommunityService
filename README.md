@@ -25,3 +25,25 @@ De seks FitLife centre har følgende faste IDs:
 ## Hvordan center-feed fungerer
 
 Når et medlem tilgår `/Community` henter servicen automatisk medlemmets `HomeCenterId` fra MemberService via:
+GET http://haav-member-service:8080/api/members/by-account/{userAccountId}
+
+Herefter hentes center-specifikke opslag for det pågældende center samt globale opslag.
+
+## Routing via nginx
+/Community        → Razor Page for medlemmer
+/CommunityAdmin   → Razor Page for admins
+/api/community/   → REST API endpoints
+
+## Miljøvariabler
+
+| Variabel | Beskrivelse |
+|----------|-------------|
+| `Vault__Url` | URL til HashiCorp Vault |
+| `Vault__Token` | Token til Vault autentificering |
+| `GatewayUrl` | Intern URL til community service selv  |
+| `MemberServiceUrl` | URL til MemberService  |
+| `Loki__Url` | URL til Grafana Loki til logging |
+
+## API Kontrakt
+
+Swagger dokumentation tilgængelig på `/swagger` når servicen kører.
