@@ -117,34 +117,35 @@ public class CommunityfrontModel : PageModel
         }
     }
 
-    private async Task<MemberDto?> GetCurrentMemberAsync()
+  private async Task<MemberDto?> GetCurrentMemberAsync()
+{
+    var userAccountId = GetCurrentUserAccountId();
+
+    if (string.IsNullOrWhiteSpace(userAccountId))
     {
-        var userAccountId = GetCurrentUserAccountId();
-
-        if (string.IsNullOrWhiteSpace(userAccountId))
-        {
-            _logger.LogWarning("No user/member id found in JWT/cookies");
-            return null;
-        }
-
-        try
-        {
-            AddJwtTokenToRequest();
-
-            return await _httpClient.GetFromJsonAsync<MemberDto>(
-                $"http://haav-member-service:8080/api/Members/by-user/{userAccountId}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Could not get member by user account {UserAccountId} from MemberService",
-                userAccountId);
-
-            return null;
-        }
+        _logger.LogWarning("No user/member id found in JWT/cookies");
+        return null;
     }
 
+    try
+    {
+        AddJwtTokenToRequest();
+        var memberServiceUrl = _configuration["MemberServiceUrl"] 
+            ?? "http://haav-member-service:8080";
+
+        return await _httpClient.GetFromJsonAsync<MemberDto>(
+            $"{memberServiceUrl}/api/members/by-account/{userAccountId}");
+    }
+    catch (Exception ex)
+    {
+        _logger.LogWarning(
+            ex,
+            "Could not get member by user account {UserAccountId} from MemberService",
+            userAccountId);
+
+        return null;
+    }
+}
     private string? GetCurrentUserAccountId()
     {
         return Request.Cookies["memberId"]
@@ -154,20 +155,19 @@ public class CommunityfrontModel : PageModel
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
 
-    private string GetCenterDisplayName(string centerId)
+   private string GetCenterDisplayName(string centerId)
+{
+    return centerId switch
     {
-        return centerId switch
-        {
-            "11111111-1111-1111-1111-111111111111" => "FitLife Aarhus C",
-            "22222222-2222-2222-2222-222222222222" => "FitLife Aarhus N",
-            "33333333-3333-3333-3333-333333333333" => "FitLife Viby",
-            "44444444-4444-4444-4444-444444444444" => "FitLife Randers",
-            "55555555-5555-5555-5555-555555555555" => "FitLife Horsens",
-            "66666666-6666-6666-6666-666666666666" => "FitLife Silkeborg",
-            _ => $"Center {centerId}"
-        };
-    }
-
+        "00000000-0000-0000-0000-000000000001" => "FitLife Aarhus C",
+        "00000000-0000-0000-0000-000000000002" => "FitLife Aarhus Nord",
+        "00000000-0000-0000-0000-000000000003" => "FitLife Viby",
+        "00000000-0000-0000-0000-000000000004" => "FitLife Randers",
+        "00000000-0000-0000-0000-000000000005" => "FitLife Horsens",
+        "00000000-0000-0000-0000-000000000006" => "FitLife Silkeborg",
+        _ => $"Center {centerId}"
+    };
+}
     private string GetGatewayUrl()
     {
         return _configuration["GatewayUrl"]
